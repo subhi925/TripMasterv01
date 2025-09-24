@@ -1,0 +1,66 @@
+.btnPartner{
+  background-color: #0f100f; 
+  border: none;
+  color: white;
+  padding: 10px 22px;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  font-size: 16px;
+  margin: 4px 2px;
+  cursor: pointer;
+  border-radius: 12px;
+}
+
+.btnPartner:hover {
+  background-color: rgb(0, 204, 204);
+  transform: translateY(-2px);
+}
+.dateInputs{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin-top: 10px;
+}
+.startDateInput,
+.endDateInput {
+  width: auto;
+  height: 30px;
+  margin: 0 5px;
+}
+.dateLabel {
+  font-weight: bold;
+  margin-right: 5px;
+  font-size: large;
+}
+.msgInput {
+  align-items: center;
+  justify-content: center;
+  width: 400px;
+  height: 200px;
+  font-size: 18px;
+  margin: 5px;
+  resize: none;
+}
+
+.msgContainer{
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+.numberOfPartners{
+  width: 200px;
+}
+/* Responsive Styles */
+@media (max-width: 900px) {
+  .btnPartner {
+    font-size: 16px; /* Match Dashboard and Navbar */
+    padding: 8px 12px;
+    margin: 4px 1px;
+    width: auto;
+    min-width: 90px;
+    box-sizing: border-box;
+    display: inline-block;
+    white-space: nowrap;
+  }
+}

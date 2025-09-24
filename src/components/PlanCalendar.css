@@ -1,0 +1,85 @@
+/* קונטיינר */
+.calendar-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow-x: auto;
+  padding: 1px;
+}
+.page-container {
+  display: flex;
+  align-items: stretch; /* Sidebar יתאים לגובה הקלנדר */
+}
+
+/* כלל הקלנדר */
+.fc {
+  padding: 10px;
+  margin: auto;
+  max-width: 1300px;
+  width: 90%;
+  background-color: #d9d9d9; /* אפור בהיר ולא כהה */
+  border-radius: 10px;
+  color: black;
+  font-family: sans-serif;
+}
+
+.fc-event,
+.fc-event a,
+.fc-event .fc-event-title,
+.fc-event .fc-event-main {
+  white-space: normal !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+  display: block !important;
+  background-color: rgba(255, 255, 255, 0.737) !important; /* לבן */
+  color: black !important; /* טקסט שחור */
+
+  padding: 3px 5px !important;
+
+  overflow-wrap: break-word !important;
+  display: block !important;
+  font-size: 0.8rem !important;
+  line-height: 1.2 !important;
+}
+
+/* Hover לאירועים */
+.fc-event:hover {
+  background-color: #60c7ff !important;
+  cursor: pointer;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.2);
+}
+.fc-col-header-cell {
+  background-color: #eebe00 !important; /* כותרות כהות יותר */
+  color: #000 !important;
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 8px 0;
+}
+.fc-scrollgrid td,
+.fc-scrollgrid th {
+  border-color: black !important;
+  border-width: 2px !important;
+}
+/* Responsive לטלפונים */
+@media (max-width: 900px) {
+  .page-container {
+    flex-direction: column; /* Sidebar מעל הקלנדר */
+    align-items: stretch;
+  }
+
+  .sidebar {
+    width: 100%; /* Sidebar רוחב מלא */
+    max-height: 300px; /* גובה מקסימלי */
+    margin-bottom: 10px;
+  }
+
+  .calendar-container {
+    width: 100%; /* Calendar רוחב מלא */
+    padding: 0 5px;
+  }
+
+  .fc {
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+}

@@ -1,0 +1,155 @@
+/* path: src/components/ShareYourStory.css */
+
+/* ================== משתני צבע/סגנון ================== */
+:root {
+  --bg:#f8fafc; --card:#ffffff; --ink:#0f172a; --muted:#64748b; --ring:#e2e8f0;
+  --brand:#6d28d9; --brand2:#3b82f6; --accent:#f59e0b;
+  --shadow:0 10px 30px rgba(2,6,23,.06); --radius:16px;
+}
+
+/* ============ אפקט כניסה עדין לכל הדף ============ */
+.sys-wrapper{max-width:1100px;margin:0 auto;padding:28px;opacity:0;transform:translateY(6px);transition:all .35s ease}
+.sys-wrapper.is-mounted{opacity:1;transform:none}
+
+.sys-title{margin:0 0 6px;color:var(--brand);font-weight:800;font-size:32px;text-align:center}
+.sys-sub{margin:0 18px 18px;color:var(--muted);text-align:center}
+
+/* ============ Filters ============ */
+.sys-filters{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-bottom:18px}
+.sys-input{border:1px solid var(--ring);border-radius:12px;padding:10px 12px;min-width:190px;outline:none;transition:box-shadow .15s,border-color .15s;background:#fff}
+.sys-input:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+
+/* ============ Buttons ============ */
+.sys-btn{border:none;border-radius:12px;padding:10px 14px;cursor:pointer;font-weight:600;background:#f1f5f9;color:var(--ink);transition:transform .1s ease, box-shadow .2s ease}
+.sys-btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(2,6,23,.08)}
+.sys-btn:active{transform:translateY(0)}
+.sys-btn-primary{background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 6px 18px rgba(37,99,235,.25)}
+.sys-btn-success { background:#22c55e; border-color:#22c55e; color:#fff; }
+.sys-btn-success:disabled { opacity: 1; }
+.sys-btn:disabled{opacity:.6;cursor:not-allowed}
+
+.sys-err{color:#dc2626;text-align:center;margin-top:10px}
+.sys-empty{color:var(--muted);text-align:center;margin-top:10px}
+
+/* ============ Grid / Cards ============ */
+.sys-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+
+/* כניסה מדורגת לכל כרטיס */
+@keyframes fadeUp { from {opacity:0;transform:translateY(10px)} to {opacity:1;transform:none} }
+
+.sys-card{
+  background:var(--card);border:1px solid var(--ring);border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow);display:flex;flex-direction:column;min-height:380px;
+  animation:fadeUp .5s both ease; animation-delay:calc(var(--i,0) * 60ms);
+}
+.sys-card:hover{box-shadow:0 16px 40px rgba(2,6,23,.12);transform:translateY(-2px);transition:all .2s}
+
+/* Card header */
+.sys-card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.sys-card-title{
+  font-weight:800;color:var(--ink);font-size:18px;line-height:1.2;max-width:62%;
+  word-break:break-word;overflow:hidden;text-overflow:ellipsis;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;
+}
+.sys-stars{background:var(--accent);color:#fff;border-radius:9999px;padding:2px 8px;font-weight:800;font-size:13px;white-space:nowrap}
+.sys-days{background:#111827;color:#fff;border-radius:9999px;padding:2px 8px;font-weight:800;font-size:12px}
+
+/* Thumbs */
+.sys-thumbs{position:relative;display:grid;grid-template-columns:repeat(2,1fr);grid-auto-rows:110px;gap:8px;margin-bottom:10px;cursor:pointer}
+.sys-thumb{border:1px solid var(--ring);border-radius:12px;overflow:hidden}
+.sys-thumb img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .25s ease}
+.sys-thumbs:hover img{transform:scale(1.03)}
+.sys-more{position:absolute;right:10px;bottom:10px;background:rgba(15,23,42,.85);color:#fff;font-weight:800;padding:4px 10px;border-radius:9999px;font-size:12px;box-shadow:0 2px 6px rgba(0,0,0,.25)}
+.sys-noimg{border:1px dashed var(--ring);border-radius:12px;display:flex;align-items:center;justify-content:center;height:120px;color:var(--muted);margin-bottom:10px}
+
+/* Meta & Note */
+.sys-meta{list-style:none;padding:0;margin:0 0 8px 0;color:var(--muted);font-size:13px}
+.sys-meta li{display:flex;gap:6px;align-items:center;margin:4px 0}
+.sys-note{
+  color:var(--ink);margin:6px 0 12px;font-size:14px;line-height:1.5;overflow:hidden;word-break:break-word;
+  display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:3;line-clamp:3;
+}
+.sys-actions{margin-top:auto;display:flex;gap:10px;justify-content:flex-end}
+
+/* ============ Skeletons (שימר) ============ */
+@keyframes shimmer{
+  0%{background-position:-450px 0;}
+  100%{background-position:450px 0;}
+}
+.sys-skel .skel{
+  border-radius:12px;background-color:#eaeff5;position:relative;overflow:hidden;
+  background-image:linear-gradient(90deg,#eaeff5 0,#f6f8fb 40%,#eaeff5 80%);
+  background-size:600px 100%;animation:shimmer 1.2s infinite linear;
+}
+.skel-title{height:22px;margin-bottom:12px;width:70%}
+.skel-title.wide{width:85%}
+.skel-thumbs{height:140px;margin-bottom:12px}
+.skel-thumbs.tall{height:220px}
+.skel-line{height:12px;margin:10px 0}
+.skel-line.short{width:60%}
+.skel-btns{height:36px;width:60%;margin-top:auto}
+
+/* ============ Modal Layer + Dialog ============ */
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+@keyframes pop { from{opacity:0;transform:translateY(6px) scale(.98)} to{opacity:1;transform:none} }
+
+.sys-layer{position:fixed;inset:0;background:rgba(15,23,42,.75);display:flex;align-items:center;justify-content:center;z-index:9999;padding:16px;animation:fadeIn .2s ease}
+.sys-dialog{position:relative;background:#fff;border-radius:16px;box-shadow:0 20px 60px rgba(0,0,0,.35);width:min(820px,95vw);max-height:90vh;overflow:auto;padding:18px;border:1px solid var(--ring);animation:pop .22s ease}
+.sys-dialog--xl{width:min(980px, 92vw);max-height:88vh}
+.sys-close{position:absolute;top:10px;right:10px;border:none;background:#111827;color:#fff;width:36px;height:36px;border-radius:10px;cursor:pointer;font-size:18px;opacity:.9}
+.sys-close:hover{opacity:1}
+
+/* Header of dialog */
+.dlg-head{display:flex;align-items:center;gap:.75rem;margin-bottom:.5rem;}
+.dlg-title{font-size:1.25rem;font-weight:800;margin:0;}
+.dlg-sub{display:flex;align-items:center;gap:.5rem;color:#666;font-size:.9rem}
+
+/* ============ Gallery Grid + Lightbox ============ */
+.sys-gallery-grid{
+  display:grid;grid-template-columns: repeat(auto-fill,minmax(140px,1fr));
+  gap:.5rem;margin:.75rem 0 1rem;
+}
+.sys-gallery-cell{
+  display:block;border:0;background:#fff;padding:0;cursor:pointer;
+  border-radius:.75rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.08);
+}
+.sys-gallery-cell img{display:block;width:100%;height:120px;object-fit:cover;transition:transform .25s ease}
+.sys-gallery-cell:hover img{transform:scale(1.05)}
+
+.sys-lightbox{
+  position:fixed;inset:0;background:rgba(0,0,0,.82);
+  display:flex;align-items:center;justify-content:center;z-index:10000;animation:fadeIn .18s ease;
+}
+.sys-lightbox img{max-width:88vw;max-height:88vh;border-radius:.75rem;box-shadow:0 12px 40px rgba(0,0,0,.5)}
+.sys-lightbox-close{
+  position:absolute;top:14px;right:16px;font-size:28px;line-height:1;
+  background:#fff;border:0;border-radius:50%;width:40px;height:40px;cursor:pointer;
+}
+.sys-lightbox-nav{
+  position:absolute;top:50%;transform:translateY(-50%);font-size:38px;line-height:1;
+  width:48px;height:48px;border-radius:50%;border:0;background:#fff;cursor:pointer;
+}
+.sys-lightbox-nav.prev{left:18px}
+.sys-lightbox-nav.next{right:18px}
+/* זום קטן לתמונה כשנפתחת */
+@keyframes zoomIn { from{transform:scale(.98);opacity:.9} to{transform:none;opacity:1} }
+.zoom-in{animation:zoomIn .2s ease}
+
+/* ============ דו-עמודיות + טבלאות ============ */
+.dlg-two{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:.5rem;}
+@media (max-width: 840px){ .dlg-two{grid-template-columns:1fr;} }
+
+.sys-table{width:100%;border-collapse:collapse;border-spacing:0;background:#fff;border-radius:.75rem;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.sys-table th,.sys-table td{padding:.6rem .75rem;border-bottom:1px solid #eee;text-align:left;font-size:.95rem}
+.sys-table th{width:32%;color:#444;background:#fafafa;font-weight:600}
+.sys-table thead th{background:#f4f6fb}
+
+.sys-dialog-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.sys-muted{color:var(--muted)}
+
+/* ============ Toast ============ */
+.sys-toast{
+  position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+  background:#0ea5e9;color:#fff;padding:10px 14px;border-radius:9999px;
+  box-shadow:0 10px 30px rgba(14,165,233,.35);z-index:10001;animation:pop .25s ease
+}

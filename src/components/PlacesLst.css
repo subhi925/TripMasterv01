@@ -1,0 +1,11 @@
+.sidebar{
+        margin: 10px;
+        width: 200px;            
+        background: rgb(244, 244, 253);        
+        padding: 10px;
+        overflow-y: auto;        
+        height: 1350px;
+        color: rgb(236, 195, 195) ; 
+        border-radius: 15px;
+               
+}

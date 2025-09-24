@@ -1,0 +1,33 @@
+/* Reuse the original "nb-" look for the form page */
+.nb-wrapper{max-width:980px;margin:0 auto;padding:24px}
+.nb-h1{font-size:28px;font-weight:700;text-align:center;color:#5b21b6;margin:12px 0}
+.nb-subtitle{text-align:center;color:#555;margin-bottom:24px}
+
+.nb-card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.nb-card-head{display:flex;align-items:center;gap:10px}
+.nb-h2{font-size:18px;margin:0}
+.nb-hint{margin-left:auto;font-size:12px;color:#6b7280}
+
+.nb-form{margin-top:10px}
+.nb-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
+.nb-field{display:flex;flex-direction:column}
+.nb-col-2{grid-column:span 2}
+.nb-label{font-size:12px;color:#374151;margin-bottom:6px}
+.nb-input{border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;outline:none}
+.nb-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.nb-textarea{min-height:120px;resize:vertical}
+
+.nb-actions{display:flex;align-items:center;gap:12px;margin-top:12px}
+.nb-btn{background:#3b82f6;color:#fff;border:0;border-radius:8px;padding:10px 16px;font-weight:600;cursor:pointer}
+.nb-btn:disabled{opacity:.6;cursor:not-allowed}
+.nb-msg{font-size:13px}
+
+/* small screens */
+@media (max-width:640px){
+  .nb-grid{grid-template-columns:1fr}
+  .nb-col-2{grid-column:auto}
+}
+/* في DahsBulltin.css (أو نفس ملف الـ nb- العام) */
+.nb-field + .nb-field { /* small vertical rhythm */
+  margin-top: 2px;
+}

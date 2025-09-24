@@ -1,0 +1,35 @@
+/* path: src/pages/Contact.css */
+/* עיצוב נקי לטופס יצירת קשר + تحسينات صغيرة */
+
+.c-wrap{max-width:1000px;margin:24px auto;padding:0 16px;color:#0f172a}
+.c-wrap h1{text-align:center;color:#4b2aad;margin:.25rem 0 .5rem}
+.c-lead{color:#64748b;margin:-6px 0 18px;text-align:center}
+
+.c-form{background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:18px;box-shadow:0 10px 28px rgba(2,6,23,.06)}
+.c-row{display:flex;flex-direction:column;margin-bottom:12px}
+.c-grid2{display:grid;grid-template-columns:1fr;gap:12px}
+@media (min-width:720px){ .c-grid2{grid-template-columns:1fr 1fr} }
+
+.c-lbl{font-size:13px;color:#374151;margin-bottom:6px}
+.c-input{border:1px solid #d1d5db;border-radius:10px;padding:10px 12px;outline:none}
+.c-input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.12)}
+.c-input.error{border-color:#ef4444;box-shadow:0 0 0 3px rgba(239,68,68,.12)}
+.c-help{color:#b91c1c;font-size:12px;margin-top:6px}
+
+.c-textarea{min-height:120px;resize:vertical}
+.c-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+.c-btn{border:none;border-radius:10px;padding:10px 14px;cursor:pointer;background:#f1f5f9;color:#0f172a;font-weight:600;position:relative;overflow:hidden}
+.c-btn-primary{background:linear-gradient(180deg,#3b82f6,#2563eb);color:#fff;box-shadow:0 6px 18px rgba(37,99,235,.25)}
+/* ripple صغير */
+.c-btn::after{content:"";position:absolute;inset:0;transform:scale(0);opacity:0;border-radius:inherit;background:radial-gradient(circle at center,rgba(255,255,255,.35),transparent 60%);transition:transform .35s,opacity .35s}
+.c-btn:active::after{transform:scale(1);opacity:1}
+
+.c-err{color:#b91c1c;font-weight:600;text-align:center;margin-top:6px}
+.c-thanks{background:#ecfdf5;border:1px solid #d1fae5;border-radius:14px;padding:16px;text-align:center}
+.c-aside{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:16px}
+.c-card{background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px}
+
+/* أنيميشن ظهور */
+.reveal{opacity:0;transform:translateY(8px);transition:opacity .45s,transform .45s}
+.reveal.is-in{opacity:1;transform:none}
+@media (prefers-reduced-motion:reduce){.reveal{opacity:1;transform:none}}

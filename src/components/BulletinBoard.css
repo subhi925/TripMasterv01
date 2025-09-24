@@ -1,0 +1,35 @@
+/* List page shares the same visual language */
+.bb-wrapper{max-width:980px;margin:0 auto;padding:24px}
+
+.nb-h1,.nb-subtitle{ /* reuse same styles so both pages match */ }
+.nb-h1{font-size:28px;font-weight:700;text-align:center;color:#5b21b6;margin:12px 0}
+.nb-subtitle{text-align:center;color:#555;margin-bottom:20px}
+
+.nb-card{background:#fff;border:1px solid #eee;border-radius:12px;padding:16px 18px;box-shadow:0 2px 10px rgba(0,0,0,.04)}
+.nb-filters{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.nb-input{border:1px solid #d1d5db;border-radius:8px;padding:10px 12px;font-size:14px;outline:none}
+.nb-input:focus{border-color:#6366f1;box-shadow:0 0 0 3px rgba(99,102,241,.15)}
+.nb-pageBtn{border:1px solid #d1d5db;background:#fafafa;border-radius:8px;padding:8px 12px;cursor:pointer}
+
+.nb-list{list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:12px}
+.nb-item{border:1px solid #e5e7eb;border-radius:12px;padding:12px 14px}
+.nb-item-head{display:flex;gap:10px;align-items:center}
+.nb-badge{background:#eef2ff;color:#3730a3;border-radius:999px;padding:4px 10px;font-size:12px}
+.nb-chip-urgent{background:#fee2e2;color:#991b1b;border-radius:999px;padding:4px 8px;font-size:12px}
+.nb-time{margin-left:auto;font-size:12px;color:#6b7280}
+.nb-title{margin:6px 0 4px;font-size:18px}
+.nb-desc{color:#374151;margin:0 0 6px}
+.nb-meta{display:flex;gap:14px;color:#374151;font-size:14px}
+
+.nb-pagination{display:flex;align-items:center;gap:12px;justify-content:center;margin-top:12px}
+.nb-pageInfo{font-size:13px;color:#6b7280}
+
+/* highlight the last posted item */
+.nb-pulse{animation:nbPulse 1.6s ease-out 2}
+@keyframes nbPulse{
+  0% { box-shadow:0 0 0 0 rgba(99,102,241,.35); }
+  100%{ box-shadow:0 0 0 18px rgba(99,102,241,0); }
+}
+
+/* “urgent” left border */
+.nb-item.is-urgent{border-left:4px solid #ef4444}
