@@ -6,7 +6,7 @@ import "./DahsBulltin.css";
 const API_BASE =
   window.__API_BASE__ ||
   localStorage.getItem("apiBase") ||
-  "http://localhost:8012/www/tripmasterv01/public";
+  "http://localhost:8080/www/tripmasterv01/public";
 
 /** Renders the publish form. Stays on the same page and shows a success message on submit. */
 export default function DahsBulltin() {

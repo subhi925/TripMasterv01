@@ -3,8 +3,8 @@
 $allowed = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',
-  'http://localhost:8012',
-  'http://127.0.0.1:8012'
+  'http://localhost:8080',
+  'http://127.0.0.1:8080'
 ];
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
 if (in_array($origin, $allowed, true)) {

@@ -64,6 +64,7 @@ const Home = () => {
     if (!user) return;
     const isActive = 0;
     const data = new FormData();
+    data.append("id", dashboardData[index]?.id);
     data.append("userId", dashboardData[index]?.userid);
     data.append(
       "eventCalender",
@@ -72,6 +73,13 @@ const Home = () => {
     data.append("places", JSON.stringify(dashboardData[index]?.places));
     data.append("isActive", String(isActive ? 1 : 0));
     data.append("titlePlan", dashboardData[index]?.titlePlan);
+    data.append("startDate", dashboardData[index]?.startDate);
+    data.append("endDate", dashboardData[index]?.endDate);
+    data.append(
+      "smartDailyPlans",
+      JSON.stringify(dashboardData[index]?.smartDailyPlans)
+    );
+    data.append("dailyHours", JSON.stringify(dashboardData[index]?.dailyHours));
     const url =
       "http://localhost:8080/www/tripmasterv01/public/movetohistory.php";
     try {

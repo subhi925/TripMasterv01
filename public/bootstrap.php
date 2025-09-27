@@ -3,7 +3,7 @@
 // פונקציית אתחול בסיסית: כותרות CORS ופורמט JSON עקבי
 
 $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-$allowed = ['http://localhost:3000','http://127.0.0.1:3000','http://localhost','http://localhost:8012'];
+$allowed = ['http://localhost:3000','http://127.0.0.1:3000','http://localhost','http://localhost:8080'];
 if ($origin && in_array($origin, $allowed, true)) {
   header("Access-Control-Allow-Origin: $origin");
   header("Vary: Origin");

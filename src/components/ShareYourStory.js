@@ -36,7 +36,7 @@ const stars = (n)=> "★".repeat(Number(n)||0) || "—";
 const useToast=()=>{ const [msg,setMsg]=useState(""); return {msg,show:(m)=>{setMsg(m);setTimeout(()=>setMsg(""),1600);}}; };
 
 // בסיס ה־API קבוע (ללא אוטו־דיטקט)
-const API_BASE = window._API_BASE_ || "http://localhost:8012/www/tripmasterv01/public";
+const API_BASE = window._API_BASE_ || "http://localhost:8080/www/tripmasterv01/public";
 
 // בקשת JSON עם טיפול בשגיאות/טקסט
 const tryGetJSON=async(url)=>{

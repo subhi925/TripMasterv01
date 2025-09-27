@@ -6,7 +6,7 @@ const getApiBase = () =>
   localStorage.getItem('apiBase') ||
   window.__API_BASE__ ||
   window._API_BASE_  ||
-  'http://localhost:8012/www/tripmasterv01/public';
+  'http://localhost:8080/www/tripmasterv01/public';
 
 const API_BASE = getApiBase();
 
