@@ -533,7 +533,11 @@ const DashBoard = () => {
         {showHistory && <HistoryPlans uid={user.uid} />}
         {myBulletin && <DahsBulltin></DahsBulltin>}
         {findPartner && (
-          <PartnerDash dashboardData={dashboardData || []} uid={user.uid} />
+          <PartnerDash
+            dashboardData={dashboardData || []}
+            uid={user.uid}
+            email={user.email}
+          />
         )}
       </div>
     </div>

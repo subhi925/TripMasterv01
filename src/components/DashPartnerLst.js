@@ -173,6 +173,8 @@ const DashPartnerLst = () => {
     const formData = new FormData();
     formData.append("id_Shared_Trip", trip.id_Shared_Trip); 
     formData.append("uid", user.uid);
+    formData.append("email", user.email);
+
 
     const res = await axios.post(
       "http://localhost:8080/www/tripmasterv01/public/updateTrip.php",

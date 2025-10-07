@@ -2,7 +2,6 @@
 // קובץ: public/clone_plan.php
 // משכפל סיפור (stories) לתכנית חדשה בטבלת dashboard לפי UID ותאריך התחלה חדש.
 // מחזיר JSON תקני: { ok:true, id:<new id> } או { ok:false, error:"..." }
-
 $allowed = [
   'http://localhost:3000',
   'http://127.0.0.1:3000',

@@ -24,6 +24,6 @@ header("Content-Type: application/json; charset=utf-8");
 ini_set('display_errors', '0');
 error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
 
-require _DIR_.'/db.php';
+require __DIR__.'/db.php';
 $_POST = $_POST + ['title'=>'My Trip']; // ברירת מחדל
-require _DIR_.'/clone_plan.php';
+require __DIR__.'/clone_plan.php';

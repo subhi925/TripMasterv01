@@ -38,9 +38,9 @@ $dailyHours      = mysqli_real_escape_string($con, $_POST['dailyHours']);
 //---------------------------------------------------------
 $insertsql = "
 INSERT INTO `historydashboardtrips`
-(`userid`, `eventCalender`, `places`, `isActive`, `titlePlan`, `startDate`, `endDate`, `smartDailyPlans`, `dailyHours`)
+(`id` , `userid`, `eventCalender`, `places`, `isActive`, `titlePlan`, `startDate`, `endDate`, `smartDailyPlans`, `dailyHours`)
 VALUES
-('$userid', '$eventCalender', '$places', '$isActive', '$titlePlan', '$startDate', '$endDate', '$smartDailyPlans', '$dailyHours')
+('$id', '$userid', '$eventCalender', '$places', '$isActive', '$titlePlan', '$startDate', '$endDate', '$smartDailyPlans', '$dailyHours')
 ";
 
 if (mysqli_query($con, $insertsql)) {

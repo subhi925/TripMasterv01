@@ -24,6 +24,7 @@ $preference = mysqli_real_escape_string($con, $_POST['preference']);
 $numberOfPartners = mysqli_real_escape_string($con, $_POST['numberOfPartners']);
 $current_Num_Part = mysqli_real_escape_string($con, $_POST['current_Num_Part']);
 $eventCalender= mysqli_real_escape_string($con,$_POST['eventCalender']);
+$joinedStr = mysqli_real_escape_string($con, $_POST['joinedUsers']);
 //-------------check if this trip is Exists in DB----------
 $check_sql = "SELECT * FROM `askforpartners` WHERE `dashboard_id`='$dashboard_id' AND `titlePlan` = '$titlePlan' AND `startdate`='$startdate' AND `enddate`='$enddate'";
 $res = mysqli_query($con, $check_sql);
@@ -33,8 +34,8 @@ if (mysqli_num_rows($res) > 0 ){
 else{
             // -----insert the values into the database------
         $insert_sql = "INSERT INTO `askforpartners` 
-        (`uid`, `dashboard_id`, `titlePlan`, `startdate`, `enddate`, `Msg`, `preference`, `NumOfPartners`, `current_Num_Part`,`eventCalender`)
-        VALUES ('$uid', '$dashboard_id', '$titlePlan', '$startdate', '$enddate', '$Msg', '$preference', '$numberOfPartners', '$current_Num_Part', '$eventCalender')";
+        (`uid`, `dashboard_id`, `titlePlan`, `startdate`, `enddate`, `Msg`, `preference`, `NumOfPartners`, `current_Num_Part`,`eventCalender`,`joinedUsers`)
+        VALUES ('$uid', '$dashboard_id', '$titlePlan', '$startdate', '$enddate', '$Msg', '$preference', '$numberOfPartners', '$current_Num_Part', '$eventCalender', '$joinedStr')";
 
         if (mysqli_query($con, $insert_sql)){
             $new_id_Shared_Trip = mysqli_insert_id($con);

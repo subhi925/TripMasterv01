@@ -1,98 +1,108 @@
 <?php
 // path: public/insert_story.php
-// מוסיף סיפור לטבלת stories, עם חישוב duration_days ושמירת eventCalender ותמונות.
+require_once __DIR__ . '/header_json.php'; // CORS + JSON headers
+require_once __DIR__ . '/db.php';          // $con (mysqli) + helpers
 
-header("Content-Type: application/json; charset=utf-8");
-header("Access-Control-Allow-Origin: *");
-header("Access-Control-Allow-Methods: POST, OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type");
-if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
-
-require __DIR__ . "/db.php";            // $con (mysqli)
-mysqli_set_charset($con, "utf8mb4");
-
-/* ===================== הסבר (עברית) =====================
-   - קוראים שדות מ-FormData (כולל photos[]).
-   - מחשבים מספר ימים (duration_days) מתוך start/end או מתוך האירועים.
-   - שומרים תמונות לתיקיית uploads/stories ומכניסים JSON למסד.
-   - אם יש כבר סיפור לאותו user_id+trip_id → מחזירים exists=true.
-   - אם לעמודת duration_days אין טור במסד (סכמה ישנה), נופלים אחורה
-     לשאילתת INSERT בלי הטור הזה.
-======================================================== */
-
-$uid   = trim($_POST['user_id'] ?? '');
-$trip  = (int)($_POST['trip_id'] ?? 0);
-$title = trim($_POST['title'] ?? 'My Trip');
-$country = trim($_POST['country'] ?? '');
-$rating  = (int)($_POST['rating'] ?? 0);
-$notes   = trim($_POST['notes'] ?? '');
-$ecJson  = (string)($_POST['eventCalender'] ?? '[]');  // JSON string
-$sd      = trim($_POST['start_date'] ?? '');
-$ed      = trim($_POST['end_date']   ?? '');
-
-if ($uid==='' || $trip<=0) { echo json_encode(['ok'=>false,'error'=>'missing user_id or trip_id']); exit; }
-
-/* --- חשב ימים --- */
-$duration_days = 0;
-if ($sd && $ed) {
-  $a = strtotime(substr($sd,0,10)); $b = strtotime(substr($ed,0,10));
-  if ($a && $b) $duration_days = max(1, (int)round(($b-$a)/86400)+1);
-} else {
-  $ev = json_decode($ecJson, true); $mins=[]; $maxs=[];
-  if (is_array($ev)) {
-    foreach ($ev as $e) {
-      $as = !empty($e['start']) ? strtotime(substr($e['start'],0,10)) : null;
-      $bs = !empty($e['end'])   ? strtotime(substr($e['end'],0,10))   : $as;
-      if ($as||$bs) { $mins[]=$as??$bs; $maxs[]=$bs??$as; }
-    }
-    if ($mins && $maxs) $duration_days = max(1, (int)round((max($maxs)-min($mins))/86400)+1);
-  }
+// نسمح فقط POST
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+  echo json_encode(['ok'=>false,'error'=>'POST required']); exit;
 }
 
-/* --- העלאת תמונות --- */
-$uploadDir = __DIR__ . "/uploads/stories";
-if (!is_dir($uploadDir)) { @mkdir($uploadDir, 0777, true); }
-$imgs = [];
+// قراءة المُدخلات
+$user_id       = trim($_POST['user_id'] ?? '');
+$trip_id       = (int)($_POST['trip_id'] ?? 0);            // id في historydashboardtrips
+$title         = trim($_POST['title'] ?? 'My Trip');
+$rating        = (int)($_POST['rating'] ?? 0);
+$notes         = (string)($_POST['notes'] ?? '');
+$eventCalJson  = (string)($_POST['eventCalender'] ?? '[]'); // JSON نصّي
+$start_date    = trim($_POST['start_date'] ?? '');
+$end_date      = trim($_POST['end_date'] ?? '');
+
+if ($user_id === '' || $trip_id <= 0) {
+  echo json_encode(['ok'=>false,'error'=>'Missing user_id or trip_id']); exit;
+}
+
+// جلب السطر الأصلي (نتأكد أنه موجود ونقرأ الصور الحالية)
+$st = $con->prepare("SELECT userid, images FROM historydashboardtrips WHERE id=? LIMIT 1");
+$st->bind_param('i', $trip_id);
+$st->execute();
+$src = $st->get_result()->fetch_assoc();
+$st->close();
+
+if (!$src) { echo json_encode(['ok'=>false,'error'=>'History row not found']); exit; }
+// (اختياري) لو بدك تفرض أن نفس المستخدم فقط يشارك:
+// if ($src['userid'] !== $user_id) { echo json_encode(['ok'=>false,'error'=>'Forbidden']); exit; }
+
+// ========== رفع الصور ==========
+$UP_DIR = __DIR__ . '/uploads/stories';
+if (!is_dir($UP_DIR)) { @mkdir($UP_DIR, 0777, true); }
+
+$images = [];
+// الصور القديمة إن وجدت
+$old = json_decode((string)$src['images'], true);
+if (is_array($old)) { $images = $old; }
+
 if (!empty($_FILES['photos']) && is_array($_FILES['photos']['name'])) {
-  for ($i=0,$n=count($_FILES['photos']['name']); $i<$n; $i++) {
-    if ($_FILES['photos']['error'][$i] === UPLOAD_ERR_OK) {
-      $tmp = $_FILES['photos']['tmp_name'][$i];
-      $name = preg_replace('~[^a-zA-Z0-9_.-]+~','-', $_FILES['photos']['name'][$i]);
-      $name = time()."_".mt_rand(1000,9999)."_".$name;
-      $dest = $uploadDir."/".$name;
-      if (move_uploaded_file($tmp,$dest)) $imgs[] = "uploads/stories/".$name;
+  $count = count($_FILES['photos']['name']);
+  for ($i=0; $i<$count; $i++) {
+    if (($_FILES['photos']['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) continue;
+    $tmp  = $_FILES['photos']['tmp_name'][$i];
+    $name = $_FILES['photos']['name'][$i];
+    $ext  = strtolower(pathinfo($name, PATHINFO_EXTENSION) ?: 'jpg');
+    if (!preg_match('/^(jpe?g|png|webp|gif)$/', $ext)) $ext = 'jpg';
+    $base = uniqid('story_', true) . '.' . $ext;
+    $dest = $UP_DIR . '/' . $base;
+    if (@move_uploaded_file($tmp, $dest)) {
+      // نخزن المسار كنِسبيّ ليستطيع الفرونت قراءته
+      $images[] = 'uploads/stories/' . $base;
     }
   }
 }
-$images_json = json_encode($imgs, JSON_UNESCAPED_UNICODE);
+$images_json = json_encode($images, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
 
-/* --- מניעת כפילות --- */
-$chk = mysqli_prepare($con, "SELECT id FROM stories WHERE user_id=? AND trip_id=? LIMIT 1");
-mysqli_stmt_bind_param($chk,"si",$uid,$trip);
-mysqli_stmt_execute($chk);
-$res = mysqli_stmt_get_result($chk);
-if ($row = mysqli_fetch_assoc($res)) { echo json_encode(['ok'=>true,'id'=>(int)$row['id'],'exists'=>true]); exit; }
-mysqli_free_result($res); mysqli_stmt_close($chk);
+// تنظيف/تثبيت JSON الحدث
+$evArr = json_decode($eventCalJson, true);
+$eventCalJson = is_array($evArr)
+  ? json_encode($evArr, JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)
+  : '[]';
 
-/* --- INSERT: קודם מנסים עם duration_days; אם אין עמודה, ניפול לשאילתה ללא העמודה --- */
-$try1 = mysqli_prepare($con, "INSERT INTO stories
-  (user_id, trip_id, title, country, start_date, end_date, created_at, rating, notes, images, eventCalender, duration_days)
-  VALUES (?,?,?,?,?,?,NOW(),?,?,?, ?, ?)");
-if ($try1) {
-  mysqli_stmt_bind_param($try1,"sissssisssi", $uid,$trip,$title,$country,$sd,$ed,$rating,$notes,$images_json,$ecJson,$duration_days);
-  if (!mysqli_stmt_execute($try1)) { $err = mysqli_error($con); mysqli_stmt_close($try1); echo json_encode(['ok'=>false,'error'=>$err]); exit; }
-  $id = mysqli_insert_id($con); mysqli_stmt_close($try1);
-  echo json_encode(['ok'=>true,'id'=>$id], JSON_UNESCAPED_UNICODE); exit;
-}
+// قيم آمنة
+$title      = mysqli_real_escape_string($con, $title);
+$notes      = mysqli_real_escape_string($con, $notes);
+$start_date = mysqli_real_escape_string($con, $start_date);
+$end_date   = mysqli_real_escape_string($con, $end_date);
 
-/* fallback (סכמה ישנה בלי duration_days) */
-$stmt = mysqli_prepare($con, "INSERT INTO stories
-  (user_id, trip_id, title, country, start_date, end_date, created_at, rating, notes, images, eventCalender)
-  VALUES (?,?,?,?,?,?,NOW(),?,?,?, ?)");
-if (!$stmt) { echo json_encode(['ok'=>false,'error'=>'prep']); exit; }
+// نحدّث سطر الـhistory نفسه ليصبح Shared
+$sql = "
+UPDATE historydashboardtrips
+SET
+  titlePlan      = ?,
+  rating         = ?,
+  notes          = ?,
+  images         = ?,
+  isShared       = 1,
+  shared_at      = NOW(),
+  eventCalender  = ?,
+  startDate      = NULLIF(?, ''),
+  endDate        = NULLIF(?, '')
+WHERE id = ?
+";
+$st = $con->prepare($sql);
+$st->bind_param(
+  'sisssssi',
+  $title,
+  $rating,
+  $notes,
+  $images_json,
+  $eventCalJson,
+  $start_date,
+  $end_date,
+  $trip_id
+);
+$ok = $st->execute();
+$err = $ok ? '' : mysqli_error($con);
+$st->close();
 
-mysqli_stmt_bind_param($stmt,"sissssisss", $uid,$trip,$title,$country,$sd,$ed,$rating,$notes,$images_json,$ecJson);
-if (!mysqli_stmt_execute($stmt)) { echo json_encode(['ok'=>false,'error'=>mysqli_error($con)]); exit; }
-$id = mysqli_insert_id($con); mysqli_stmt_close($stmt);
+if (!$ok) { echo json_encode(['ok'=>false,'error'=>$err ?: 'DB error']); exit; }
 
-echo json_encode(['ok'=>true,'id'=>$id], JSON_UNESCAPED_UNICODE);
+echo json_encode(['ok'=>true, 'id'=>$trip_id], JSON_UNESCAPED_UNICODE);

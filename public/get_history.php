@@ -1,62 +1,44 @@
 <?php
 // path: public/get_history.php
+// ---- מה עושה ----
+// מחזיר רשימת נסיעות עבר (historydashboardtrips) עבור uid.
+// שים לב: פרטי המסלול (events/places) אינם כאן – נביאם לפי dashid דרך get_plan_by_id.php.
 
-// ===== CORS + JSON =====
-$allowed = [
-  'http://localhost:3000','http://127.0.0.1:3000',
-  'http://localhost:8080','http://127.0.0.1:8080'
-];
-$origin = $_SERVER['HTTP_ORIGIN'] ?? '';
-if (in_array($origin,$allowed,true)) header("Access-Control-Allow-Origin: $origin"); else header("Access-Control-Allow-Origin: *");
-header("Vary: Origin");
-header("Access-Control-Allow-Credentials: true");
-header("Access-Control-Allow-Methods: GET,OPTIONS");
-header("Access-Control-Allow-Headers: Content-Type, Authorization");
-if ($_SERVER['REQUEST_METHOD']==='OPTIONS'){ http_response_code(204); exit; }
-header("Content-Type: application/json; charset=utf-8");
+header('Content-Type: application/json; charset=utf-8');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
+header('Access-Control-Allow-Headers: Content-Type');
+if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') { http_response_code(204); exit; }
 
-// לא מדפיסים אזהרות למסך
-ini_set('display_errors','0');
-error_reporting(E_ALL & ~E_NOTICE & ~E_WARNING);
+require __DIR__.'/db.php';
+mysqli_set_charset($con,'utf8mb4');
 
-// חיבור
-require __DIR__.'/db.php'; // מספק $con, j_ok, j_err
+$raw  = file_get_contents('php://input') ?: '';
+$body = json_decode($raw, true) ?: [];
+$uid  = trim($_GET['uid'] ?? $_POST['uid'] ?? $body['uid'] ?? '');
 
-$uid = trim($_GET['uid'] ?? '');
-if ($uid==='') j_err('missing uid',400);
+$out = ['ok'=>true,'items'=>[]];
+if ($uid === '') { echo json_encode($out, JSON_UNESCAPED_UNICODE); exit; }
 
-// הערה: טבלת historydashboardtrips לפי הצילומים שלך
-// שדות שימושיים: id,dashid,userid,titlePlan,startDate,endDate,isActive
-$sql = "SELECT id,dashid,userid,titlePlan,startDate,endDate,isActive
+$sql = "SELECT hist_id AS id, dashid, userid, titlePlan, startDate, endDate, isActive
         FROM historydashboardtrips
-        WHERE userid=?
-        ORDER BY id DESC
+        WHERE userid = ?
+        ORDER BY hist_id DESC
         LIMIT 200";
-$stmt = mysqli_prepare($con,$sql);
-if(!$stmt) j_err('db error (prep)');
-mysqli_stmt_bind_param($stmt,'s',$uid);
-if(!mysqli_stmt_execute($stmt)) j_err('db error (exec)');
-$res = mysqli_stmt_get_result($stmt);
+$st = mysqli_prepare($con,$sql);
+mysqli_stmt_bind_param($st,'s',$uid);
+mysqli_stmt_execute($st);
+$res = mysqli_stmt_get_result($st);
 
-$items=[];
 while($r = mysqli_fetch_assoc($res)){
-  // ended – אם יש endDate ועבר
-  $ended = false;
-  if (!empty($r['endDate'])) {
-    $ended = (strtotime($r['endDate']) < time());
-  }
-  $items[] = [
+  $out['items'][] = [
     'id'         => (int)$r['id'],
     'dashid'     => (int)$r['dashid'],
     'user_id'    => $r['userid'],
     'title'      => $r['titlePlan'],
-    'start_date' => $r['startDate'],
-    'end_date'   => $r['endDate'],
-    'ended'      => (bool)$ended,
+    'start_date' => (string)$r['startDate'],
+    'end_date'   => (string)$r['endDate'],
     'is_active'  => (int)$r['isActive'],
   ];
 }
-mysqli_free_result($res);
-mysqli_stmt_close($stmt);
-
-j_ok(['items'=>$items]);
+echo json_encode($out, JSON_UNESCAPED_UNICODE);

@@ -15,6 +15,7 @@ foreach ($requiredParams as $param) {
 // ---- קבלת הערכים ----
 $id_Shared_Trip = mysqli_real_escape_string($con, $_POST['id_Shared_Trip']);
 $uid = mysqli_real_escape_string($con, $_POST['uid']);
+$email = mysqli_real_escape_string($con, $_POST['email']);
 
 // ---- בדיקה אם המשתמש כבר הצטרף ----
 $checkUserSql = "SELECT joinedUsers, current_Num_Part, NumOfPartners FROM askforpartners WHERE id_Shared_Trip='$id_Shared_Trip'";
@@ -30,7 +31,7 @@ $current_Num_Part = (int)$row['current_Num_Part'];
 $NumOfPartners = (int)$row['NumOfPartners'];
 
 // ---- בדיקה אם המשתמש כבר הצטרף ----
-if (in_array($uid, $joinedUsers)) {
+if (in_array($email, $joinedUsers)) {
     echo("Already joined");
     exit();
 }
@@ -42,7 +43,7 @@ if ($current_Num_Part >= $NumOfPartners) {
 }
 
 // ---- עדכון current_Num_Part ו-joinedUsers ----
-$joinedUsers[] = $uid;
+$joinedUsers[] = $email;
 $current_Num_Part = count($joinedUsers);
 $joinedStr = implode(',', $joinedUsers);
 $updateSql = "UPDATE askforpartners

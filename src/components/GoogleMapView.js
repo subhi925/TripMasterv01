@@ -11,8 +11,8 @@ import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 
 const containerStyle = {
-  width: "100%",
-  height: "450px",
+  width: "1000px",
+  height: "550px",
   borderRadius: "12px",
 };
 
@@ -146,7 +146,7 @@ const GoogleMapView = ({ center, eventCalender, dayPlanShow }) => {
       <GoogleMap
         mapContainerStyle={containerStyle}
         center={center}
-        zoom={12}
+        zoom={13}
         options={{
           gestureHandling: "greedy",
           streetViewControl: false,

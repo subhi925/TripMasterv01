@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import axios from "axios";
 import "./PartnerDash.css";
 import DashPartnerLst from "./DashPartnerLst";
+import SendMSg from "./SendMSg";
 
-const PartnerDash = ({ dashboardData, uid }) => {
+const PartnerDash = ({ dashboardData, uid,email }) => {
   const [askForPartner, setAskForPartner] = useState(false);
   const [checkIftherePartnerInDb, setCheckIftherePartnerInDb] = useState(false);
   const [msgAgree, setMsgAgree] = useState();
@@ -31,6 +32,7 @@ const PartnerDash = ({ dashboardData, uid }) => {
     data.append("eventCalender",JSON.stringify(eventCalender))
     data.append("numberOfPartners", numberOfPartners);
     data.append("current_Num_Part", 1);
+    data.append("joinedUsers",email);
     const url =
       "http://localhost:8080/www/tripmasterv01/public/sendToAsklist.php";
     try {
@@ -205,7 +207,7 @@ const PartnerDash = ({ dashboardData, uid }) => {
         )}
         {msgAgree && (
           <div>
-            <p>Message agreed!</p>
+            <SendMSg myEmail={email} dashboardData={dashboardData}/>
           </div>
         )}
       </div>
