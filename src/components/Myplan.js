@@ -580,8 +580,14 @@ const Myplan = ({
 
   return (
     <div className="resualtPlan">
-      {smartDailyPlans.length > 0 && <Link to="/DashBoard">Dashboard</Link>}
-      {places.length > 0 && smartDailyPlans.length === 0 && <h1>Loading</h1>}
+      {smartDailyPlans.length > 0 && <Link to="/DashBoard">
+      <h1 className="dashReady">Your Plan Is Ready </h1></Link>}
+      {places.length > 0 && smartDailyPlans.length === 0 &&<div className="loadingPlan">
+        <div className="loader"></div>
+         <h1 className="loadingContant"></h1>
+       
+         
+         </div>}
     </div>
   );
 };
