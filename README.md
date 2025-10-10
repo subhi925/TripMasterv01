@@ -54,3 +54,72 @@ Make sure you have the following installed:
    ```bash
    git clone https://github.com/subhi925/TripMasterv01.git
    cd TripMasterv01
+
+   Set up the backend
+
+Open config.php and update your database credentials:
+$host = "localhost";
+$user = "root";
+$password = "";
+$database = "tripmaster";
+
+
+Run your local PHP server (for example):
+php -S localhost:8000
+Set up the frontend
+cd src
+npm install
+npm start
+Open http://localhost:3000
+ in your browser.
+
+Build for production
+npm run build
+
+Project Structure
+TripMasterv01/
+│
+├── public/                # Static frontend files
+├── src/                   # React app source code
+├── config.php             # Backend database config
+├── init.php               # Backend bootstrap
+├── package.json           # Frontend dependencies
+├── .gitignore
+└── README.md
+
+🔗 API Routes (Examples)
+Method	Endpoint	Description
+GET	/api/trips	Get all trips
+GET	/api/trips/:id	Get trip by ID
+POST	/api/trips	Create new trip
+PUT	/api/trips/:id	Update trip
+DELETE	/api/trips/:id	Delete trip
+
+(Update these routes based on your actual PHP API files.)
+🧩 Roadmap
+
+ Add authentication (login & register)
+
+ Responsive mobile design
+
+ Integrate Google Maps API
+
+ Trip filtering & sorting
+
+ Group trip creation
+
+ “Surprise me” random destination feature
+
+ Trip sharing between users
+
+ 📬 Contact
+
+Developed by Subhi Mouhammed Hamed
+GitHub: https://github.com/subhi925
+
+📄 License
+
+This project is licensed under the MIT License — you are free to use, modify, and distribute it with proper credit.
+
+
+
