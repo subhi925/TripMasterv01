@@ -1,13 +1,7 @@
 // path: src/pages/Contact.js
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import "./Contact.css";
 
-/*
-  דף "Contact":
-  - טופס דמו ללא שליחה לשרת.
-  - ולידציה בצד לקוח + הודעת תודה.
-  - אנימציית הופעה קלה + ARIA לנגישות.
-*/
 export default function Contact(){
   const [name,setName]=useState("");
   const [email,setEmail]=useState("");
@@ -17,8 +11,11 @@ export default function Contact(){
   const [err,setErr]=useState("");
   const [touched,setTouched]=useState({name:false,email:false,msg:false});
 
-  // פונקציה: validate
-  // מחזירה אובייקט שגיאות לפי שדות ("" אם תקין).
+  // refs לשדות במקום id
+  const nameRef = useRef(null);
+  const emailRef = useRef(null);
+  const msgRef = useRef(null);
+
   const validate=()=>{
     const e={ name:"", email:"", msg:"" };
     if(!name.trim()) e.name="Please enter your name.";
@@ -27,14 +24,10 @@ export default function Contact(){
     return e;
   };
 
-  // פונקציה: firstError
-  // תפקיד: להחזיר את שם השדה הראשון שיש בו שגיאה (או null).
   const firstError=(eObj)=>{
     return eObj.name? "name" : eObj.email? "email" : eObj.msg? "msg" : null;
   };
 
-  // פונקציה: onSubmit
-  // תפקיד: אימות, הצגת שגיאה (אם יש), או הצגת הודעת תודה (דמו).
   const onSubmit=(e)=>{
     e.preventDefault();
     const eObj=validate();
@@ -42,20 +35,18 @@ export default function Contact(){
     setErr(eObj.name || eObj.email || eObj.msg);
     if(first){
       setTouched(t=>({...t,[first]:true}));
-      // פוקוס לשדה הראשון עם שגיאה
-      document.getElementById(first)?.focus();
+      // שימוש ב-ref במקום document.getElementById
+      if(first==="name") nameRef.current?.focus();
+      if(first==="email") emailRef.current?.focus();
+      if(first==="msg") msgRef.current?.focus();
       return;
     }
     setErr("");
-    // סימולציה לשליחה
     setTimeout(()=> setSent(true), 250);
   };
 
-  // פונקציה: onBlurField
-  // תפקיד: סימון שדה כ"טופל" להצגת שגיאה מיידית אחרי יציאה מהשדה.
   const onBlurField=(key)=> setTouched(t=>({...t,[key]:true}));
 
-  // אנימציית הופעה לאלמנטים עם .reveal
   useEffect(()=>{
     const io=new IntersectionObserver((entries)=>{
       entries.forEach(e=>{ if(e.isIntersecting) e.target.classList.add("is-in"); });
@@ -75,24 +66,24 @@ export default function Contact(){
         <form className="c-form reveal" onSubmit={onSubmit} noValidate>
           <div className="c-grid2">
             <div className="c-row">
-              <label className="c-lbl" htmlFor="name">Name</label>
+              <span className="c-lbl">Name</span>
               <input
-                id="name"
+                ref={nameRef}
                 className={`c-input ${touched.name && eObj.name ? "error":""}`}
                 value={name}
                 onChange={e=>setName(e.target.value)}
                 onBlur={()=>onBlurField("name")}
                 placeholder="Your name"
                 aria-invalid={!!(touched.name && eObj.name)}
-                aria-describedby={touched.name && eObj.name ? "name-help": undefined}
+                aria-label="Name"
               />
-              {touched.name && eObj.name && <div id="name-help" className="c-help">{eObj.name}</div>}
+              {touched.name && eObj.name && <div className="c-help">{eObj.name}</div>}
             </div>
 
             <div className="c-row">
-              <label className="c-lbl" htmlFor="email">Email</label>
+              <span className="c-lbl">Email</span>
               <input
-                id="email"
+                ref={emailRef}
                 type="email"
                 className={`c-input ${touched.email && eObj.email ? "error":""}`}
                 value={email}
@@ -100,15 +91,20 @@ export default function Contact(){
                 onBlur={()=>onBlurField("email")}
                 placeholder="you@example.com"
                 aria-invalid={!!(touched.email && eObj.email)}
-                aria-describedby={touched.email && eObj.email ? "email-help": undefined}
+                aria-label="Email"
               />
-              {touched.email && eObj.email && <div id="email-help" className="c-help">{eObj.email}</div>}
+              {touched.email && eObj.email && <div className="c-help">{eObj.email}</div>}
             </div>
           </div>
 
           <div className="c-row">
-            <label className="c-lbl" htmlFor="topic">Topic</label>
-            <select id="topic" className="c-input" value={topic} onChange={e=>setTopic(e.target.value)}>
+            <span className="c-lbl">Topic</span>
+            <select
+              className="c-input"
+              value={topic}
+              onChange={e=>setTopic(e.target.value)}
+              aria-label="Topic"
+            >
               <option>General</option>
               <option>Product Feedback</option>
               <option>Bug Report</option>
@@ -117,18 +113,18 @@ export default function Contact(){
           </div>
 
           <div className="c-row">
-            <label className="c-lbl" htmlFor="msg">Message</label>
+            <span className="c-lbl">Message</span>
             <textarea
-              id="msg"
+              ref={msgRef}
               className={`c-input c-textarea ${touched.msg && eObj.msg ? "error":""}`}
               value={msg}
               onChange={e=>setMsg(e.target.value)}
               onBlur={()=>onBlurField("msg")}
               placeholder="Type your message here..."
               aria-invalid={!!(touched.msg && eObj.msg)}
-              aria-describedby={touched.msg && eObj.msg ? "msg-help": undefined}
+              aria-label="Message"
             />
-            {touched.msg && eObj.msg && <div id="msg-help" className="c-help">{eObj.msg}</div>}
+            {touched.msg && eObj.msg && <div className="c-help">{eObj.msg}</div>}
           </div>
 
           {err && <div className="c-err" role="alert">{err}</div>}
@@ -138,7 +134,10 @@ export default function Contact(){
             <button
               type="button"
               className="c-btn"
-              onClick={()=>{ setName(""); setEmail(""); setTopic("General"); setMsg(""); setErr(""); setTouched({name:false,email:false,msg:false}); }}
+              onClick={()=>{
+                setName(""); setEmail(""); setTopic("General"); setMsg("");
+                setErr(""); setTouched({name:false,email:false,msg:false});
+              }}
             >
               Clear
             </button>
@@ -148,7 +147,7 @@ export default function Contact(){
         <div className="c-thanks reveal">
           <h3>Thanks!</h3>
           <p>We received your message and will get back to you soon.</p>
-          <button className="c-btn" onClick={()=>{ setSent(false); }}>Send another</button>
+          <button className="c-btn" onClick={()=>setSent(false)}>Send another</button>
         </div>
       )}
 

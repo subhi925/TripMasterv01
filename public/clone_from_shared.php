@@ -1,42 +1,142 @@
 <?php
-require __DIR__.'/header_json.php';
-require __DIR__.'/db.php';
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
 
-// (עברית) קריאת פרמטרים
-$story_id      = (int)($_POST['story_id'] ?? 0);
-$user_id       = trim($_POST['user_id'] ?? '');
-$new_start     = trim($_POST['new_start_date'] ?? '');
-$duration_days = max(1,(int)($_POST['duration_days'] ?? 0));
-$title         = trim($_POST['title'] ?? 'My Trip');
+// -----------------------------------------------------------------
+// 1️⃣ Includes & Setup
+// -----------------------------------------------------------------
+require __DIR__ . '/header_json.php';
+require __DIR__ . '/db.php';
+mysqli_set_charset($con, 'utf8mb4');
 
-if ($story_id<=0 || $user_id==='' || $new_start==='' || $duration_days<=0) {
-  http_response_code(400); echo json_encode(['ok'=>false,'error'=>'Missing parameters']); exit;
+// -----------------------------------------------------------------
+// 2️⃣ Helper
+// -----------------------------------------------------------------
+function fail(int $code, string $msg)
+{
+    http_response_code($code);
+    echo json_encode(['ok' => false, 'error' => $msg], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    exit;
 }
 
-// (עברית) טעינת תוכנית מההיסטוריה
-$q = mysqli_query($con, "SELECT titlePlan, eventCalender, places, dailyHours, smartDailyPlans
-                         FROM historydashboardtrips WHERE id=$story_id LIMIT 1");
-$src = $q ? mysqli_fetch_assoc($q) : null;
-if(!$src){ http_response_code(404); echo json_encode(['ok'=>false,'error'=>'Source not found']); exit; }
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail(405, 'POST only');
 
-// (עברית) חישוב תאריכים חדשים
+// -----------------------------------------------------------------
+// 3️⃣ Get POST data
+// -----------------------------------------------------------------
+$story_id  = (int)($_POST['story_id'] ?? 0);
+$uid       = trim((string)($_POST['user_id'] ?? ''));
+$title     = trim((string)($_POST['title'] ?? 'My Trip'));
+$new_start = trim((string)($_POST['new_start_date'] ?? ''));
+$days      = max(1, (int)($_POST['duration_days'] ?? 1));
+
+if ($uid === '') fail(400, 'Missing user_id');
+
+// ✅ Validate start date
+if ($new_start === '' || strtotime($new_start) === false) {
+    fail(400, 'Invalid or missing start date');
+}
+
+// -----------------------------------------------------------------
+// 4️⃣ Load source trip
+// -----------------------------------------------------------------
+$ev = '[]';
+$places = '[]';
+$smart = '[]';
+$daily = '[]';
+$startloc = '{"lat":0,"lng":0}';
+
+if ($story_id > 0) {
+    $sql = "SELECT titlePlan, eventCalender, places, smartDailyPlans, dailyHours, startloc
+            FROM historydashboardtrips
+            WHERE id = ?
+            LIMIT 1";
+
+    $stSrc = mysqli_prepare($con, $sql);
+    mysqli_stmt_bind_param($stSrc, 'i', $story_id);
+    mysqli_stmt_execute($stSrc);
+    $res = mysqli_stmt_get_result($stSrc);
+
+    if (!$res) fail(500, mysqli_error($con));
+    $src = mysqli_fetch_assoc($res);
+    if (!$src) fail(404, 'Source trip not found');
+
+    $title    = $title ?: $src['titlePlan'];
+    $ev       = $src['eventCalender'] ?: '[]';
+    $places   = $src['places'] ?: '[]';
+    $smart    = $src['smartDailyPlans'] ?: '[]';
+    $daily    = $src['dailyHours'] ?: '[]';
+    $startloc = $src['startloc'] ?: '{"lat":0,"lng":0}';
+}
+
+// -----------------------------------------------------------------
+// 5️⃣ Dates
+// -----------------------------------------------------------------
 $start = date('Y-m-d', strtotime($new_start));
-$end   = date('Y-m-d', strtotime($start.' +'.($duration_days-1).' days'));
+$end   = date('Y-m-d', strtotime("$start + " . ($days - 1) . " days"));
 
-// (עברית) הוספה ל-dashboard
-$titlePlan = mysqli_real_escape_string($con, $title.' · Cloned');
-$uid       = mysqli_real_escape_string($con, $user_id);
-$ev        = mysqli_real_escape_string($con, $src['eventCalender'] ?: '[]');
-$pl        = mysqli_real_escape_string($con, $src['places'] ?: '[]');
-$dh        = mysqli_real_escape_string($con, $src['dailyHours'] ?: '[]');
-$smart     = mysqli_real_escape_string($con, $src['smartDailyPlans'] ?: '[]');
+// -----------------------------------------------------------------
+// 6️⃣ Fix events dates (convert for FullCalendar ISO format)
+// -----------------------------------------------------------------
+if (is_string($ev) && $ev !== '') {
+    $arr = json_decode($ev, true);
 
-$sql = "INSERT INTO dashboard
-        (userid, smartDailyPlans, eventCalender, dailyHours, places,
-         startDate, endDate, isActive, titlePlan, status, isShared)
-        VALUES
-        ('$uid','$smart','$ev','$dh','$pl','$start','$end',1,'$titlePlan','active','No')";
-$ok = mysqli_query($con,$sql);
-if(!$ok){ http_response_code(500); echo json_encode(['ok'=>false,'error'=>mysqli_error($con)]); exit; }
+    if (json_last_error() === JSON_ERROR_NONE && is_array($arr)) {
+        foreach ($arr as &$e) {
+            $oldStart = strtotime($e['start'] ?? $start);
+            $oldEnd   = strtotime($e['end'] ?? $start);
 
-echo json_encode(['ok'=>true,'new_id'=>mysqli_insert_id($con)], JSON_UNESCAPED_UNICODE);
+            $timeStart = date('H:i:s', $oldStart);
+            $timeEnd   = date('H:i:s', $oldEnd);
+
+            // ✅ FullCalendar expects ISO8601 format: 2025-10-14T09:00:00
+            $e['start'] = $start . 'T' . $timeStart;
+            $e['end']   = $start . 'T' . $timeEnd;
+        }
+        unset($e);
+
+        $ev = json_encode($arr, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+    }
+}
+if ($ev === null || $ev === false) $ev = '[]';
+
+// -----------------------------------------------------------------
+// 7️⃣ Status
+// -----------------------------------------------------------------
+$isActive = (strtotime($end) >= strtotime(date('Y-m-d'))) ? 1 : 0;
+
+// -----------------------------------------------------------------
+// 8️⃣ Insert into dashboard
+// -----------------------------------------------------------------
+$sqlDash = "INSERT INTO dashboard
+(userid, titlePlan, startDate, endDate, places, smartDailyPlans, dailyHours, eventCalender, startloc, isActive)
+VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+
+$st = mysqli_prepare($con, $sqlDash);
+if (!$st) fail(500, mysqli_error($con));
+
+mysqli_stmt_bind_param(
+    $st,
+    'sssssssssi',
+    $uid, $title, $start, $end,
+    $places, $smart, $daily, $ev, $startloc,
+    $isActive
+);
+
+if (!mysqli_stmt_execute($st)) fail(500, mysqli_error($con));
+
+$dash_id = mysqli_insert_id($con);
+
+// -----------------------------------------------------------------
+// 9️⃣ Return JSON
+// -----------------------------------------------------------------
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode([
+    'ok' => true,
+    'dashboard_id' => $dash_id,
+    'isActive' => $isActive,
+    'start' => $start,
+    'end' => $end
+], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+?>

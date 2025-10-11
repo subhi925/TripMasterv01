@@ -14,7 +14,8 @@ $requiredParams = [
     'startDate',
     'endDate',
     'smartDailyPlans',
-    'dailyHours'
+    'dailyHours',
+    ,'startloc',
 ];
 
 foreach ($requiredParams as $param) {
@@ -34,13 +35,14 @@ $startDate       = mysqli_real_escape_string($con, $_POST['startDate']);
 $endDate         = mysqli_real_escape_string($con, $_POST['endDate']);
 $smartDailyPlans = mysqli_real_escape_string($con, $_POST['smartDailyPlans']);
 $dailyHours      = mysqli_real_escape_string($con, $_POST['dailyHours']);
+$startloc        = mysqli_real_escape_string($con, $_POST['startloc']);
 
 //---------------------------------------------------------
 $insertsql = "
 INSERT INTO `historydashboardtrips`
-(`id` , `userid`, `eventCalender`, `places`, `isActive`, `titlePlan`, `startDate`, `endDate`, `smartDailyPlans`, `dailyHours`)
+(`id` , `userid`, `eventCalender`, `places`, `isActive`, `titlePlan`, `startDate`, `endDate`, `smartDailyPlans`, `dailyHours`, `startloc`)
 VALUES
-('$id', '$userid', '$eventCalender', '$places', '$isActive', '$titlePlan', '$startDate', '$endDate', '$smartDailyPlans', '$dailyHours')
+('$id', '$userid', '$eventCalender', '$places', '$isActive', '$titlePlan', '$startDate', '$endDate', '$smartDailyPlans', '$dailyHours', '$startloc')
 ";
 
 if (mysqli_query($con, $insertsql)) {

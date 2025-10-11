@@ -80,6 +80,7 @@ const Home = () => {
       JSON.stringify(dashboardData[index]?.smartDailyPlans)
     );
     data.append("dailyHours", JSON.stringify(dashboardData[index]?.dailyHours));
+    data.append("startloc", JSON.stringify(dashboardData[index]?.startloc));
     const url =
       "http://localhost:8080/www/tripmasterv01/public/movetohistory.php";
     try {

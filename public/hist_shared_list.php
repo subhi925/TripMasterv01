@@ -2,34 +2,56 @@
 require __DIR__.'/header_json.php';
 require __DIR__.'/db.php';
 
-$order = (($_GET['sort'] ?? 'new') === 'old') ? 'ASC' : 'DESC';
+$q    = trim($_GET['q'] ?? '');
+$sort = $_GET['sort'] ?? 'new';
 
-$sql = "SELECT
-          CAST(id AS UNSIGNED)            AS id,
-          userid                          AS user_id,
-          titlePlan                       AS title,
-          startDate                       AS start_date,
-          endDate                         AS end_date,
-          (DATEDIFF(endDate,startDate)+1) AS duration_days,
-          eventCalender, images, notes, rating, created_at, isShared
-        FROM historydashboardtrips
-        WHERE (isActive=0 OR isActive IS NULL)
-          AND (isShared=1 OR isShared='1')
-        ORDER BY created_at $order, id $order
-        LIMIT 200";
+$where = "isShared = 1"; // فقط المنشور
+if ($q !== '') {
+  $qq = "%".mysqli_real_escape_string($con, $q)."%";
+  $where .= " AND (titlePlan LIKE '$qq' OR notes LIKE '$qq')";
+}
 
-$res = mysqli_query($con,$sql);
+$order = ($sort === 'rating')
+  ? "ORDER BY rating DESC, COALESCE(shared_at, created_at) DESC"
+  : "ORDER BY COALESCE(shared_at, created_at) DESC";
+
+$sql = "
+SELECT
+  id,
+  userid,
+  titlePlan,
+  startDate   AS start_date,
+  endDate     AS end_date,
+  eventCalender,
+  images,
+  notes,
+  rating,
+  created_at,
+  shared_at,
+  isShared
+FROM historydashboardtrips
+WHERE $where
+$order
+LIMIT 200";
+
+$res = mysqli_query($con, $sql);
 $items = [];
 if ($res) {
-  while ($row = mysqli_fetch_assoc($res)) {
-    foreach (['eventCalender','images','notes'] as $f) {
-      if (isset($row[$f]) && is_string($row[$f])) {
-        $tmp = json_decode($row[$f], true);
-        if (json_last_error()===JSON_ERROR_NONE) $row[$f] = $tmp;
-      }
-    }
-    $row['id'] = (int)$row['id']; // id אחיד
-    $items[] = $row;
+  while ($r = mysqli_fetch_assoc($res)) {
+    $items[] = [
+      'id'            => (int)$r['id'],
+      'user_id'       => (string)$r['userid'],
+      'title'         => (string)$r['titlePlan'],
+      'start_date'    => (string)$r['start_date'],
+      'end_date'      => (string)$r['end_date'],
+      'eventCalender' => ($r['eventCalender'] === null || $r['eventCalender'] === '') ? '[]' : $r['eventCalender'],
+      'images'        => ($r['images']        === null || $r['images']        === '') ? '[]' : $r['images'],
+      'notes'         => (string)($r['notes'] ?? ''),
+      'rating'        => (int)($r['rating'] ?? 0),
+      'created_at'    => (string)$r['created_at'],
+      'shared_at'     => (string)$r['shared_at'],
+      'isShared'      => (int)$r['isShared'],
+    ];
   }
 }
-echo json_encode(['ok'=>true,'items'=>$items], JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES);
+echo json_encode(['ok'=>true, 'items'=>$items], JSON_UNESCAPED_UNICODE);

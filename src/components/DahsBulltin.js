@@ -8,22 +8,18 @@ const API_BASE =
   localStorage.getItem("apiBase") ||
   "http://localhost:8080/www/tripmasterv01/public";
 
-/** Renders the publish form. Stays on the same page and shows a success message on submit. */
 export default function DahsBulltin() {
-  /** Subscribes to Firebase auth and stores the current user. */
   const [user, setUser] = useState(null);
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
   }, []);
 
-  /** Derived boolean: whether the user is allowed to post. */
   const canPost = useMemo(() => !!user, [user]);
 
-  /** Controlled form state for all inputs (includes customType for "Other"). */
   const [form, setForm] = useState({
     type: "help",
-    customType: "",      // ← shown only when type === "other"
+    customType: "",
     title: "",
     description: "",
     location: "",
@@ -32,96 +28,89 @@ export default function DahsBulltin() {
     contact: "",
   });
 
-  /** Generic change handler for inputs. */
   const onChange = useCallback(
     (e) => setForm((s) => ({ ...s, [e.target.name]: e.target.value })),
     []
   );
 
-  /** UI feedback (button loading + success / error text). */
   const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState(""); // "success" | "error" | ""
+  const [messageType, setMessageType] = useState("");
 
-  /**
-   * Handles form submit:
-   * - Validates fields.
-   * - Builds finalType: uses customType when type === "other".
-   * - Calls insert_notice.php.
-   * - On success: shows message (no navigation), resets form, and stores new id for highlighting later.
-   */
-  const submit = useCallback(async (e) => {
-    e.preventDefault();
+  const submit = useCallback(
+    async (e) => {
+      e.preventDefault();
 
-    if (!canPost) {
-      setMessageType("error");
-      setMessage("Please sign in to publish a notice.");
-      return;
-    }
-    if (!form.title.trim() || !form.description.trim()) {
-      setMessageType("error");
-      setMessage("Title and Description are required.");
-      return;
-    }
-
-    // Build the trip date string as before
-    const trip_dates =
-      form.trip_start && form.trip_end
-        ? `${form.trip_start} → ${form.trip_end}`
-        : form.trip_start || form.trip_end || "";
-
-    // Use the custom reason when "Other" is selected
-    const finalType =
-      form.type === "other" && form.customType.trim()
-        ? form.customType.trim()
-        : form.type;
-
-    setPosting(true);
-    setMessage(""); setMessageType("");
-
-    try {
-      const res = await fetch(`${API_BASE}/insert_notice.php`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user?.uid || "",
-          name: user?.displayName || "",
-          contact: form.contact || user?.email || "",
-          type: finalType,                // ← send resolved type
-          title: form.title,
-          description: form.description,
-          location: form.location,
-          trip_dates,
-        }),
-      });
-      const data = await res.json();
-
-      if (data?.ok && data?.id) {
-        localStorage.setItem("lastPostedNoticeId", String(data.id));
-        setMessageType("success");
-        setMessage("✅ Published successfully.");
-        setForm({
-          type: "help",
-          customType: "",
-          title: "",
-          description: "",
-          location: "",
-          trip_start: "",
-          trip_end: "",
-          contact: "",
-        });
-      } else {
+      if (!canPost) {
         setMessageType("error");
-        setMessage(data?.error || "Failed to save. Please try again.");
+        setMessage("Please sign in to publish a notice.");
+        return;
       }
-    } catch (err) {
-      console.error(err);
-      setMessageType("error");
-      setMessage("Network error. Please check your server.");
-    } finally {
-      setPosting(false);
-    }
-  }, [canPost, form, user]);
+      if (!form.title.trim() || !form.description.trim()) {
+        setMessageType("error");
+        setMessage("Title and Description are required.");
+        return;
+      }
+
+      const trip_dates =
+        form.trip_start && form.trip_end
+          ? `${form.trip_start} → ${form.trip_end}`
+          : form.trip_start || form.trip_end || "";
+
+      const finalType =
+        form.type === "other" && form.customType.trim()
+          ? form.customType.trim()
+          : form.type;
+
+      setPosting(true);
+      setMessage("");
+      setMessageType("");
+
+      try {
+        const res = await fetch(`${API_BASE}/insert_notice.php`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: user?.uid || "",
+            name: user?.displayName || "",
+            contact: form.contact || user?.email || "",
+            type: finalType,
+            title: form.title,
+            description: form.description,
+            location: form.location,
+            trip_dates,
+          }),
+        });
+        const data = await res.json();
+
+        if (data?.ok && data?.id) {
+          localStorage.setItem("lastPostedNoticeId", String(data.id));
+          setMessageType("success");
+          setMessage("✅ Published successfully.");
+          setForm({
+            type: "help",
+            customType: "",
+            title: "",
+            description: "",
+            location: "",
+            trip_start: "",
+            trip_end: "",
+            contact: "",
+          });
+        } else {
+          setMessageType("error");
+          setMessage(data?.error || "Failed to save. Please try again.");
+        }
+      } catch (err) {
+        console.error(err);
+        setMessageType("error");
+        setMessage("Network error. Please check your server.");
+      } finally {
+        setPosting(false);
+      }
+    },
+    [canPost, form, user]
+  );
 
   return (
     <div className="nb-wrapper">
@@ -139,8 +128,8 @@ export default function DahsBulltin() {
         <form onSubmit={submit} className="nb-form">
           <div className="nb-grid">
             {/* Type */}
-            <div className="nb-field">
-              <label className="nb-label">Type</label>
+            <label className="nb-field">
+              <span className="nb-label">Type</span>
               <select
                 name="type"
                 value={form.type}
@@ -154,12 +143,12 @@ export default function DahsBulltin() {
                 <option value="network">Networking</option>
                 <option value="other">Other</option>
               </select>
-            </div>
+            </label>
 
-            {/* Custom Type – appears only when "Other" is selected */}
+            {/* Custom Type */}
             {form.type === "other" && (
-              <div className="nb-field">
-                <label className="nb-label">Custom Type</label>
+              <label className="nb-field">
+                <span className="nb-label">Custom Type</span>
                 <input
                   name="customType"
                   value={form.customType}
@@ -168,12 +157,12 @@ export default function DahsBulltin() {
                   className="nb-input"
                   disabled={!canPost || posting}
                 />
-              </div>
+              </label>
             )}
 
             {/* Title */}
-            <div className="nb-field nb-col-2">
-              <label className="nb-label">Title</label>
+            <label className="nb-field nb-col-2">
+              <span className="nb-label">Title</span>
               <input
                 name="title"
                 value={form.title}
@@ -182,11 +171,11 @@ export default function DahsBulltin() {
                 className="nb-input"
                 disabled={!canPost || posting}
               />
-            </div>
+            </label>
 
             {/* Description */}
-            <div className="nb-field nb-col-2">
-              <label className="nb-label">Description</label>
+            <label className="nb-field nb-col-2">
+              <span className="nb-label">Description</span>
               <textarea
                 name="description"
                 value={form.description}
@@ -195,11 +184,11 @@ export default function DahsBulltin() {
                 className="nb-input nb-textarea"
                 disabled={!canPost || posting}
               />
-            </div>
+            </label>
 
             {/* Location */}
-            <div className="nb-field">
-              <label className="nb-label">Location</label>
+            <label className="nb-field">
+              <span className="nb-label">Location</span>
               <input
                 name="location"
                 value={form.location}
@@ -208,11 +197,11 @@ export default function DahsBulltin() {
                 className="nb-input"
                 disabled={!canPost || posting}
               />
-            </div>
+            </label>
 
             {/* Trip Start */}
-            <div className="nb-field">
-              <label className="nb-label">Trip Start</label>
+            <label className="nb-field">
+              <span className="nb-label">Trip Start</span>
               <input
                 type="date"
                 name="trip_start"
@@ -221,11 +210,11 @@ export default function DahsBulltin() {
                 className="nb-input"
                 disabled={!canPost || posting}
               />
-            </div>
+            </label>
 
             {/* Contact */}
-            <div className="nb-field nb-col-2">
-              <label className="nb-label">Contact</label>
+            <label className="nb-field nb-col-2">
+              <span className="nb-label">Contact</span>
               <input
                 name="contact"
                 value={form.contact}
@@ -234,7 +223,7 @@ export default function DahsBulltin() {
                 className="nb-input"
                 disabled={!canPost || posting}
               />
-            </div>
+            </label>
           </div>
 
           <div className="nb-actions">

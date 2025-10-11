@@ -4,7 +4,7 @@ import "./PartnerDash.css";
 import DashPartnerLst from "./DashPartnerLst";
 import SendMSg from "./SendMSg";
 
-const PartnerDash = ({ dashboardData, uid,email }) => {
+const PartnerDash = ({ dashboardData, uid, email }) => {
   const [askForPartner, setAskForPartner] = useState(false);
   const [checkIftherePartnerInDb, setCheckIftherePartnerInDb] = useState(false);
   const [msgAgree, setMsgAgree] = useState();
@@ -16,8 +16,9 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
   const [msgBox, setMsgBox] = useState("");
   const [numberOfPartners, setNumberOfPartners] = useState(2);
   const [resault, setResault] = useState("");
-  const [eventCalender,setEventCalender] = useState([]);
-    //-----------------------------------------------
+  const [eventCalender, setEventCalender] = useState([]);
+
+  //-----------------------------------------------
   //-send the Ask for Partner's
   const sendAskForPartners = async () => {
     if (!uid) return;
@@ -29,10 +30,10 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
     data.append("enddate", endDate);
     data.append("msgBox", msgBox);
     data.append("preference", JSON.stringify(preference));
-    data.append("eventCalender",JSON.stringify(eventCalender))
+    data.append("eventCalender", JSON.stringify(eventCalender));
     data.append("numberOfPartners", numberOfPartners);
     data.append("current_Num_Part", 1);
-    data.append("joinedUsers",email);
+    data.append("joinedUsers", email);
     const url =
       "http://localhost:8080/www/tripmasterv01/public/sendToAsklist.php";
     try {
@@ -71,6 +72,7 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
     }
   }, [dashboardData]);
   //----------------------------------------------------------------------
+
   useEffect(() => {
     if (dashboardData.length > 0 && planId !== "") {
       const plan = dashboardData.find((item) => item.id === planId);
@@ -82,6 +84,7 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
       }
     }
   }, [planId, dashboardData]);
+
   //---------------------------------------
   useEffect(() => {
     if (
@@ -111,8 +114,6 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
     }
   }, [planId, startDate, endDate, dashboardData]);
 
-  //-----------Debuges------------------
-
   //---------------------------------------
   return (
     <div className="partnerContainer">
@@ -130,7 +131,7 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
       <div className="resultPartnerContainer">
         {askForPartner && (
           <div className="formContainer">
-            <label htmlFor="myPlansLabel">
+            <label>
               Which Plan You Looking For Partner:
             </label>
             <select
@@ -139,10 +140,9 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
             >
               {dashboardData.length > 0 &&
                 dashboardData.map((item, index) => (
-                  <option
-                    key={index}
-                    value={`${item.id}`}
-                  >{`${item.titlePlan}`}</option>
+                  <option key={index} value={`${item.id}`}>
+                    {`${item.titlePlan}`}
+                  </option>
                 ))}
             </select>
             <div className="dateInputs">
@@ -202,12 +202,10 @@ const PartnerDash = ({ dashboardData, uid,email }) => {
             </button>
           </div>
         )}
-        {checkIftherePartnerInDb && (
-          <DashPartnerLst uid={uid} ></DashPartnerLst>
-        )}
+        {checkIftherePartnerInDb && <DashPartnerLst uid={uid} />}
         {msgAgree && (
           <div>
-            <SendMSg myEmail={email} dashboardData={dashboardData}/>
+            <SendMSg myEmail={email} dashboardData={dashboardData} />
           </div>
         )}
       </div>

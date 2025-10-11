@@ -110,52 +110,71 @@ const DashPartnerLst = () => {
     return (sharedPref.length / merg.length) * 0.3;
   };
   //--------------Find Me Match Button----
-  const findMyMatch = () => {
-    if (!countryToVisit) return;
-    if (!enduser || !startuser) return;
-    const myPotentialPar = [];
-    const filterUserPref = [];
-    if (userPerf.length > 0) {
-      for (let type of userPerf) {
-        filterUserPref.push(type?.Category);
-      }
+const findMyMatch = () => {
+  if (!countryToVisit) {
+    alert("Please enter the country you want to visit.");
+    return;
+  }
+  if (!startuser || !enduser) {
+    alert("Please select both start and end dates.");
+    return;
+  }
+
+  const startDateObj = new Date(startuser);
+  const endDateObj = new Date(enduser);
+  if (startDateObj > endDateObj) {
+    alert("Start date cannot be after end date.");
+    return;
+  }
+
+  const myPotentialPar = [];
+  const filterUserPref = [];
+  if (userPerf.length > 0) {
+    for (let type of userPerf) {
+      filterUserPref.push(type?.Category);
     }
-    for (let partnerLst of partnerLstDb) {
-      let totalMatchPrecent = 0;
-      const partnerCountry = String(partnerLst?.titlePlan).toLowerCase();
-      const currentCountry = String(countryToVisit).toLowerCase();
-      if (
-        partnerCountry.includes(currentCountry) &&
-        partnerLst?.uid !== user.uid
-      ) {
-        totalMatchPrecent += 0.4;
-        let dMatch = datesMatchPrecent(
-          partnerLst?.startdate,
-          partnerLst?.enddate
-        );
-        console.log("dateMatch", dMatch);
-        totalMatchPrecent += dMatch;
-        let prefMatch = mergAndReturnPrecentOfMatch(
-          filterUserPref,
-          partnerLst?.preference
-        );
-        console.log("prefMatch", prefMatch);
-        totalMatchPrecent += prefMatch;
-      }
-      if (totalMatchPrecent * 100 >= 70) {
-        myPotentialPar.push({
-          ...partnerLst,
-          matchPer: `${totalMatchPrecent * 100}%`,
-        });
-      }
+  }
+
+  for (let partnerLst of partnerLstDb) {
+    let totalMatchPrecent = 0;
+    const partnerCountry = String(partnerLst?.titlePlan).toLowerCase();
+    const currentCountry = String(countryToVisit).toLowerCase();
+    if (
+      partnerCountry.includes(currentCountry) &&
+      partnerLst?.uid !== user.uid
+    ) {
+      totalMatchPrecent += 0.4;
+      let dMatch = datesMatchPrecent(
+        partnerLst?.startdate,
+        partnerLst?.enddate
+      );
+      totalMatchPrecent += dMatch;
+      let prefMatch = mergAndReturnPrecentOfMatch(
+        filterUserPref,
+        partnerLst?.preference
+      );
+      totalMatchPrecent += prefMatch;
     }
-    setPotentialPartner(myPotentialPar);
-  };
+    if (totalMatchPrecent * 100 >= 70) {
+      myPotentialPar.push({
+        ...partnerLst,
+        matchPer: `${totalMatchPrecent * 100}%`,
+      });
+    }
+  }
+  setPotentialPartner(myPotentialPar);
+};
+
   //----------------------------
   //--------------Join Trip---------------
-  const joinTrip = async (trip) => {
+const joinTrip = async (trip) => {
   if (!user?.uid) {
     alert("User not logged in");
+    return;
+  }
+
+  if (!trip.id_Shared_Trip) {
+    alert("Invalid trip selected.");
     return;
   }
 
@@ -174,7 +193,6 @@ const DashPartnerLst = () => {
     formData.append("id_Shared_Trip", trip.id_Shared_Trip); 
     formData.append("uid", user.uid);
     formData.append("email", user.email);
-
 
     const res = await axios.post(
       "http://localhost:8080/www/tripmasterv01/public/updateTrip.php",
