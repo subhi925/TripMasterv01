@@ -1,18 +1,32 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import "./BulletinBoard.css";
 
-/* עברית: בסיס ה־API מתוך localStorage או index.html, עם ברירת מחדל */
+/* 
+  BulletinBoard Component
+  ------------------------------------------------------------
+  Displays community notices (posts) with search, filters,
+  sorting, and pagination. Each notice may include a title,
+  description, trip dates, location, and contact info.
+*/
+
+//------------------------------------------------------------
+// API Base Detection (fallback if not in localStorage)
+//------------------------------------------------------------
 const getApiBase = () =>
-  localStorage.getItem('apiBase') ||
+  localStorage.getItem("apiBase") ||
   window.__API_BASE__ ||
-  window._API_BASE_  ||
-  'http://localhost:8080/www/tripmasterv01/public';
+  window._API_BASE_ ||
+  "http://localhost:8080/www/tripmasterv01/public";
 
 const API_BASE = getApiBase();
 
-/** עברית: רכיב שמציג מודעות עם חיפוש/סינון/דפדוף */
+//------------------------------------------------------------
+// Main Component
+//------------------------------------------------------------
 export default function BulletinBoard() {
-  /** עברית: תצוגת "לפני כמה זמן" מקריאת ISO */
+  //------------------------------------------------------------
+  // Helper: Display human-friendly time ("5m ago", "2h ago", etc.)
+  //------------------------------------------------------------
   const friendlyTime = useCallback((iso) => {
     const d = new Date(iso);
     const s = (Date.now() - d.getTime()) / 1000;
@@ -22,7 +36,9 @@ export default function BulletinBoard() {
     return d.toLocaleString();
   }, []);
 
-  /** עברית: האם התאריך בתוך 7 ימים (לתג 'Urgent') */
+  //------------------------------------------------------------
+  // Helper: Check if a date is within 7 days (mark as "Urgent")
+  //------------------------------------------------------------
   const isUrgent = useCallback((tripDatesOrStart) => {
     const raw = String(tripDatesOrStart || "");
     const start = raw.includes("→") ? raw.split("→")[0].trim() : raw.trim();
@@ -31,26 +47,29 @@ export default function BulletinBoard() {
     return days <= 7;
   }, []);
 
-  // data + pagination
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+  //------------------------------------------------------------
+  // Component States
+  //------------------------------------------------------------
+  const [items, setItems] = useState([]); // fetched notices
+  const [loading, setLoading] = useState(true); // loading indicator
+  const [page, setPage] = useState(1); // current page
+  const [totalPages, setTotalPages] = useState(1); // total pages from API
+  const [filters, setFilters] = useState({ q: "", type: "all", sort: "new" }); // search/filter options
 
-  // filters (search + type + order)
-  const [filters, setFilters] = useState({ q: "", type: "all", sort: "new" });
-
-  /** עברית: קריאת עמוד מודעות מה־API עם טיפול שגיאות ברור */
+  //------------------------------------------------------------
+  // Function: Fetch notices from API with error handling
+  //------------------------------------------------------------
   const loadPage = useCallback(async (p = 1) => {
     setLoading(true);
     try {
       const url = `${API_BASE}/get_notices.php?page=${p}`;
-      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const res = await fetch(url, { headers: { Accept: "application/json" } });
+
       if (!res.ok) {
-        // נקרא טקסט כדי להבין מה השגיאה (HTML של PHP, למשל)
         const text = await res.text();
         throw new Error(`HTTP ${res.status} — ${text.slice(0, 200)}`);
       }
+
       const data = await res.json();
       if (Array.isArray(data?.items)) {
         setItems(data.items);
@@ -67,10 +86,16 @@ export default function BulletinBoard() {
     }
   }, []);
 
-  // initial load
-  useEffect(() => { loadPage(1); }, [loadPage]);
+  //------------------------------------------------------------
+  // Effect: Initial load
+  //------------------------------------------------------------
+  useEffect(() => {
+    loadPage(1);
+  }, [loadPage]);
 
-  /** עברית: היילייט למודעה שפורסמה עכשיו (נשלפת מה־localStorage) */
+  //------------------------------------------------------------
+  // Highlight recently posted notice (from localStorage)
+  //------------------------------------------------------------
   const [highlightId, setHighlightId] = useState(null);
   useEffect(() => {
     const id = localStorage.getItem("lastPostedNoticeId");
@@ -80,7 +105,9 @@ export default function BulletinBoard() {
     }
   }, []);
 
-  /** עברית: סינון/מיון בצד לקוח */
+  //------------------------------------------------------------
+  // Client-side filtering and sorting (after fetch)
+  //------------------------------------------------------------
   const filtered = useMemo(() => {
     return items
       .filter((it) =>
@@ -102,11 +129,15 @@ export default function BulletinBoard() {
       );
   }, [filters, items]);
 
+  //------------------------------------------------------------
+  // Render Component
+  //------------------------------------------------------------
   return (
     <div className="bb-wrapper">
       <h1 className="nb-h1">Bulletin Board</h1>
       <p className="nb-subtitle">Browse recent notices from travelers.</p>
 
+      {/* ===================== FILTER BAR ===================== */}
       <section className="nb-card">
         <div className="nb-filters">
           <input
@@ -115,11 +146,13 @@ export default function BulletinBoard() {
             value={filters.q}
             onChange={(e) => setFilters((s) => ({ ...s, q: e.target.value }))}
           />
+
           <select
             className="nb-input"
             value={filters.type}
-            onChange={(e) => setFilters((s) => ({ ...s, type: e.target.value }))}
-          >
+            onChange={(e) =>
+              setFilters((s) => ({ ...s, type: e.target.value }))
+            }>
             <option value="all">All types</option>
             <option value="help">Help Request</option>
             <option value="rideshare">Ride Share</option>
@@ -127,22 +160,25 @@ export default function BulletinBoard() {
             <option value="network">Networking</option>
             <option value="other">Other</option>
           </select>
+
           <select
             className="nb-input"
             value={filters.sort}
-            onChange={(e) => setFilters((s) => ({ ...s, sort: e.target.value }))}
-          >
+            onChange={(e) =>
+              setFilters((s) => ({ ...s, sort: e.target.value }))
+            }>
             <option value="new">Newest</option>
             <option value="old">Oldest</option>
           </select>
+
           <button
             className="nb-pageBtn"
-            onClick={() => setFilters({ q: "", type: "all", sort: "new" })}
-          >
+            onClick={() => setFilters({ q: "", type: "all", sort: "new" })}>
             Reset
           </button>
         </div>
 
+        {/* ===================== LIST AREA ===================== */}
         {loading ? (
           <p>Loading...</p>
         ) : filtered.length === 0 ? (
@@ -151,9 +187,12 @@ export default function BulletinBoard() {
           <ul className="nb-list">
             {filtered.map((it) => {
               const urgent = isUrgent(it.trip_dates);
-              const pulse = String(it.id) === String(highlightId) ? "nb-pulse" : "";
+              const pulse =
+                String(it.id) === String(highlightId) ? "nb-pulse" : "";
               return (
-                <li key={it.id} className={`nb-item ${urgent ? "is-urgent" : ""} ${pulse}`}>
+                <li
+                  key={it.id}
+                  className={`nb-item ${urgent ? "is-urgent" : ""} ${pulse}`}>
                   <div className="nb-item-head">
                     <span className="nb-badge">{it.type}</span>
                     {urgent && <span className="nb-chip-urgent">Urgent</span>}
@@ -176,20 +215,23 @@ export default function BulletinBoard() {
           </ul>
         )}
 
+        {/* ===================== PAGINATION ===================== */}
         <div className="nb-pagination">
           <button
             className="nb-pageBtn"
             disabled={page <= 1}
-            onClick={() => loadPage(page - 1)}
-          >
+            onClick={() => loadPage(page - 1)}>
             Prev
           </button>
-          <span className="nb-pageInfo">Page {page} of {totalPages}</span>
+
+          <span className="nb-pageInfo">
+            Page {page} of {totalPages}
+          </span>
+
           <button
             className="nb-pageBtn"
             disabled={page >= totalPages}
-            onClick={() => loadPage(page + 1)}
-          >
+            onClick={() => loadPage(page + 1)}>
             Next
           </button>
         </div>

@@ -539,7 +539,7 @@ const Myplan = ({
     const startdate = new Date(datestr);
     const endDate = new Date(dateEndstr);
     const todayDate = new Date();
-    if (todayDate < startdate || todayDate < endDate) {
+    if (todayDate <= startdate || todayDate <= endDate) {
       setIsActive(true);
     } else {
       setIsActive(false);

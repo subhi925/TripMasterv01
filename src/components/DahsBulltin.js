@@ -1,22 +1,40 @@
+// path: src/pages/DahsBulltin.js
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import { onAuthStateChanged } from "firebase/auth";
 import { auth } from "../fire";
 import "./DahsBulltin.css";
 
+//----------------------------
+// 🔹 API Base URL
+// Determines backend API base endpoint (can be defined globally or stored locally)
+//----------------------------
 const API_BASE =
   window.__API_BASE__ ||
   localStorage.getItem("apiBase") ||
   "http://localhost:8080/www/tripmasterv01/public";
 
 export default function DahsBulltin() {
+  //----------------------------
+  // 🔹 Firebase Authentication State
+  // Keeps track of the current logged-in user
+  //----------------------------
   const [user, setUser] = useState(null);
+
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (u) => setUser(u));
     return () => unsub();
   }, []);
 
+  //----------------------------
+  // 🔹 Permission Check
+  // Determines if a logged-in user can publish a notice
+  //----------------------------
   const canPost = useMemo(() => !!user, [user]);
 
+  //----------------------------
+  // 🔹 Form State
+  // Stores all form field values for the bulletin notice
+  //----------------------------
   const [form, setForm] = useState({
     type: "help",
     customType: "",
@@ -28,30 +46,48 @@ export default function DahsBulltin() {
     contact: "",
   });
 
+  //----------------------------
+  // 🔹 Input Change Handler
+  // Updates state when any form input changes
+  //----------------------------
   const onChange = useCallback(
     (e) => setForm((s) => ({ ...s, [e.target.name]: e.target.value })),
     []
   );
 
+  //----------------------------
+  // 🔹 UI Feedback States
+  // Handles loading indicator, success/error messages
+  //----------------------------
   const [posting, setPosting] = useState(false);
   const [message, setMessage] = useState("");
   const [messageType, setMessageType] = useState("");
 
+  //----------------------------
+  // 🔹 Submit Handler
+  // Validates and sends notice data to the backend API
+  //----------------------------
   const submit = useCallback(
     async (e) => {
       e.preventDefault();
 
+      // Prevent submission if user is not logged in
       if (!canPost) {
         setMessageType("error");
         setMessage("Please sign in to publish a notice.");
         return;
       }
+
+      // Validate required fields
       if (!form.title.trim() || !form.description.trim()) {
         setMessageType("error");
         setMessage("Title and Description are required.");
         return;
       }
 
+      //----------------------------
+      // 🔹 Prepare formatted fields before sending
+      //----------------------------
       const trip_dates =
         form.trip_start && form.trip_end
           ? `${form.trip_start} → ${form.trip_end}`
@@ -62,6 +98,10 @@ export default function DahsBulltin() {
           ? form.customType.trim()
           : form.type;
 
+      //----------------------------
+      // 🔹 API Request
+      // Sends JSON payload to backend endpoint via POST
+      //----------------------------
       setPosting(true);
       setMessage("");
       setMessageType("");
@@ -81,8 +121,12 @@ export default function DahsBulltin() {
             trip_dates,
           }),
         });
+
         const data = await res.json();
 
+        //----------------------------
+        // 🔹 Handle API Response
+        //----------------------------
         if (data?.ok && data?.id) {
           localStorage.setItem("lastPostedNoticeId", String(data.id));
           setMessageType("success");
@@ -112,13 +156,19 @@ export default function DahsBulltin() {
     [canPost, form, user]
   );
 
+  //----------------------------
+  // 🔹 Component JSX Render
+  // Displays bulletin board form and status messages
+  //----------------------------
   return (
     <div className="nb-wrapper">
       <h1 className="nb-h1">Bulletin Board</h1>
       <p className="nb-subtitle">
-        Post and browse requests for help, ride-sharing, hotel mates, collaborations, and more.
+        Post and browse requests for help, ride-sharing, hotel mates,
+        collaborations, and more.
       </p>
 
+      {/* ---------------------------- CREATE NOTICE FORM ---------------------------- */}
       <section className="nb-card">
         <div className="nb-card-head">
           <h2 className="nb-h2">Create a Notice</h2>
@@ -135,8 +185,7 @@ export default function DahsBulltin() {
                 value={form.type}
                 onChange={onChange}
                 className="nb-input"
-                disabled={!canPost || posting}
-              >
+                disabled={!canPost || posting}>
                 <option value="help">Help Request</option>
                 <option value="rideshare">Ride Share</option>
                 <option value="collab">Collaboration</option>
@@ -212,7 +261,20 @@ export default function DahsBulltin() {
               />
             </label>
 
-            {/* Contact */}
+            {/* Trip End */}
+            <label className="nb-field">
+              <span className="nb-label">Trip End</span>
+              <input
+                type="date"
+                name="trip_end"
+                value={form.trip_end}
+                onChange={onChange}
+                className="nb-input"
+                disabled={!canPost || posting}
+              />
+            </label>
+
+            {/* Contact Info */}
             <label className="nb-field nb-col-2">
               <span className="nb-label">Contact</span>
               <input
@@ -226,15 +288,21 @@ export default function DahsBulltin() {
             </label>
           </div>
 
+          {/* Submit Button + Feedback */}
           <div className="nb-actions">
-            <button type="submit" className="nb-btn" disabled={!canPost || posting}>
+            <button
+              type="submit"
+              className="nb-btn"
+              disabled={!canPost || posting}>
               {posting ? "Publishing..." : "Publish Notice"}
             </button>
+
             {message && (
               <span
                 className="nb-msg"
-                style={{ color: messageType === "success" ? "#16a34a" : "#dc2626" }}
-              >
+                style={{
+                  color: messageType === "success" ? "#16a34a" : "#dc2626",
+                }}>
                 {message}
               </span>
             )}

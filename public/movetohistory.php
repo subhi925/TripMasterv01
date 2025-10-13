@@ -15,7 +15,7 @@ $requiredParams = [
     'endDate',
     'smartDailyPlans',
     'dailyHours',
-    ,'startloc',
+    'startloc'
 ];
 
 foreach ($requiredParams as $param) {

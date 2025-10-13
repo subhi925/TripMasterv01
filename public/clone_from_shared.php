@@ -4,14 +4,14 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 
 // -----------------------------------------------------------------
-//  Includes & Setup
+// 1️⃣ Includes & Setup
 // -----------------------------------------------------------------
 require __DIR__ . '/header_json.php';
 require __DIR__ . '/db.php';
 mysqli_set_charset($con, 'utf8mb4');
 
 // -----------------------------------------------------------------
-//  Helper
+// 2️⃣ Helper
 // -----------------------------------------------------------------
 function fail(int $code, string $msg)
 {
@@ -23,7 +23,7 @@ function fail(int $code, string $msg)
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') fail(405, 'POST only');
 
 // -----------------------------------------------------------------
-//  Get POST data
+// 3️⃣ Get POST data
 // -----------------------------------------------------------------
 $story_id  = (int)($_POST['story_id'] ?? 0);
 $uid       = trim((string)($_POST['user_id'] ?? ''));
@@ -33,13 +33,13 @@ $days      = max(1, (int)($_POST['duration_days'] ?? 1));
 
 if ($uid === '') fail(400, 'Missing user_id');
 
-//  Validate start date
+// 
 if ($new_start === '' || strtotime($new_start) === false) {
     fail(400, 'Invalid or missing start date');
 }
 
 // -----------------------------------------------------------------
-//  Load source trip
+// 4️⃣ Load source trip
 // -----------------------------------------------------------------
 $ev = '[]';
 $places = '[]';
@@ -71,13 +71,13 @@ if ($story_id > 0) {
 }
 
 // -----------------------------------------------------------------
-//  Dates
+// 5️⃣ Dates
 // -----------------------------------------------------------------
 $start = date('Y-m-d', strtotime($new_start));
 $end   = date('Y-m-d', strtotime("$start + " . ($days - 1) . " days"));
 
 // -----------------------------------------------------------------
-// 5. Adjust dailyHours dates
+// 5.1️⃣ Adjust dailyHours dates
 // -----------------------------------------------------------------
 if (is_string($daily) && $daily !== '') {
     $arrDaily = json_decode($daily, true);
@@ -102,7 +102,7 @@ if (is_string($daily) && $daily !== '') {
 }
 
 // -----------------------------------------------------------------
-//  Fix events dates (convert for FullCalendar ISO format)
+// 6️⃣ Fix events dates (convert for FullCalendar ISO format)
 // -----------------------------------------------------------------
 if (is_string($ev) && $ev !== '') {
     $arr = json_decode($ev, true);
@@ -127,12 +127,12 @@ if (is_string($ev) && $ev !== '') {
 if ($ev === null || $ev === false) $ev = '[]';
 
 // -----------------------------------------------------------------
-//  Status
+// 7️⃣ Status
 // -----------------------------------------------------------------
 $isActive = (strtotime($end) >= strtotime(date('Y-m-d'))) ? 1 : 0;
 
 // -----------------------------------------------------------------
-//  Insert into dashboard
+// 8️⃣ Insert into dashboard
 // -----------------------------------------------------------------
 $sqlDash = "INSERT INTO dashboard
 (userid, titlePlan, startDate, endDate, places, smartDailyPlans, dailyHours, eventCalender, startloc, isActive)
@@ -154,7 +154,7 @@ if (!mysqli_stmt_execute($st)) fail(500, mysqli_error($con));
 $dash_id = mysqli_insert_id($con);
 
 // -----------------------------------------------------------------
-//  Return JSON
+// 9️⃣ Return JSON
 // -----------------------------------------------------------------
 header('Content-Type: application/json; charset=utf-8');
 echo json_encode([
