@@ -418,11 +418,6 @@ const PlanMyTrip = () => {
   //----------------------------
   // Debug logs
   //----------------------------
-  useEffect(() => {
-    console.log("The type", types);
-    console.log("The eventsList", eventsList);
-    console.log("the Country", country);
-  }, [types, eventsList]);
 
   //----------------------------
   // JSX Render

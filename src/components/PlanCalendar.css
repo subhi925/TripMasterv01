@@ -98,6 +98,7 @@
   95%  { opacity: 0; }
   100% { content: "Will Done Soon....."; opacity: 1; }
 }
+
 /* Responsive לטלפונים */
 @media (max-width: 900px) {
   .page-container {

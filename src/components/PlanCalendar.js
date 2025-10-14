@@ -396,7 +396,7 @@ const PlanCalendar = ({
                 editable={true}
                 droppable={true}
                 events={events}
-                slotMinTime="00:00:00"
+                slotMinTime="07:00:00"
                 slotMaxTime="24:00:00"
                 allDaySlot={false}
                 height="auto"
@@ -541,7 +541,7 @@ const PlanCalendar = ({
           editable={false}
           droppable={false}
           events={events}
-          slotMinTime={"05:00:00"}
+          slotMinTime={"07:00:00"}
           slotMaxTime={"24:00:00"}
           allDaySlot={false}
           height="auto"
@@ -618,7 +618,7 @@ const PlanCalendar = ({
                     href={selectedEvent.website}
                     target="_blank"
                     rel="noopener noreferrer">
-                    {selectedEvent.website}
+                    Click Here
                   </a>
                 ) : (
                   "No Website"
@@ -676,11 +676,15 @@ const PlanCalendar = ({
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setSelectedEvent(null)}>
+          <Button
+            className="btn btn-secondary"
+            onClick={() => setSelectedEvent(null)}>
             Close
           </Button>
           {!selectedEvent?.isFixed && editPress && (
-            <Button variant="danger" onClick={() => deleteEvent(selectedEvent)}>
+            <Button
+              className="btn btn-danger"
+              onClick={() => deleteEvent(selectedEvent)}>
               Delete
             </Button>
           )}
