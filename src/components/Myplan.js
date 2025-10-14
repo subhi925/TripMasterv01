@@ -1,27 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react"; // React hooks
 import "./Myplan.css";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { Link } from "react-router";
-import { auth } from "../fire";
-import axios from "axios";
+import { useAuthState } from "react-firebase-hooks/auth"; // Firebase auth hook
+import { Link } from "react-router"; // Link for navigation
+import { auth } from "../fire"; // Firebase auth instance
+import axios from "axios"; // HTTP requests
 
+//----------------------------
+// COMPONENT: Myplan
+//----------------------------
 const Myplan = ({
-  places,
-  spendDays,
-  dailyHours,
-  arrive,
-  startloc,
-  eventsList,
-  shuffleArray,
-  titlePlan,
+  places, // Array of places to visit
+  spendDays, // Number of days for the trip
+  dailyHours, // Array with start and end hours per day
+  arrive, // Arrival date
+  startloc, // Starting location
+  eventsList, // Array of events
+  shuffleArray, // Function to shuffle arrays
+  titlePlan, // Plan title
 }) => {
-  const [user] = useAuthState(auth);
-  const [isActive, setIsActive] = useState(true);
-  const [hasSend, setHasSend] = useState(false);
-  const [smartDailyPlans, setSmartDailyPlans] = useState([]);
-  const [sharedPlan, setSharedPlan] = useState("NO");
-  const [idSharedTrip, setIdSharedTrip] = useState(0);
+  //----------------------------
+  // HOOKS
+  //----------------------------
+  const [user] = useAuthState(auth); // Logged-in user
+  const [isActive, setIsActive] = useState(true); // Plan active status
+  const [hasSend, setHasSend] = useState(false); // Prevent multiple sends
+  const [smartDailyPlans, setSmartDailyPlans] = useState([]); // Array of daily plans
+  const [sharedPlan, setSharedPlan] = useState("NO"); // Shared plan flag
+  const [idSharedTrip, setIdSharedTrip] = useState(0); // Shared trip ID
 
+  //----------------------------
+  // DURATION TIMES
+  //----------------------------
   const [durationTime] = useState({
     Zoo: 150,
     Aquarium: 90,
@@ -80,9 +89,14 @@ const Myplan = ({
     "Local Market": 90,
   });
 
-  const getDuration = (type) => durationTime[type] || 90;
+  //----------------------------
+  // FUNCTION: GET DURATION
+  //----------------------------
+  const getDuration = (type) => durationTime[type] || 90; // Default 90 min
 
-  // Google Directions API - תחבורה ציבורית
+  //----------------------------
+  // FUNCTION: GOOGLE DIRECTIONS API
+  //----------------------------
   const getTravelInfo = async (
     origin,
     destination,
@@ -98,7 +112,7 @@ const Myplan = ({
         const leg = data.routes[0].legs[0];
         return {
           duration: leg.duration.text,
-          durationValue: leg.duration.value, // שניות
+          durationValue: leg.duration.value, // seconds
           distance: leg.distance.text,
           mode: mode,
           transitDetails: leg.steps
@@ -120,23 +134,25 @@ const Myplan = ({
     return null;
   };
 
-  // אירועים ליום
+  //----------------------------
+  // PREPARE EVENTS PER DAY
+  //----------------------------
   const dayEvent = [];
   if (eventsList.length > 0) {
     for (let i = 0; i < dailyHours.length; i++) {
       for (let j = 0; j < eventsList.length; j++) {
         if (eventsList[j].date === dailyHours[i].day) {
-          dayEvent.push({
-            day: i,
-            eventDetail: eventsList[j],
-          });
+          dayEvent.push({ day: i, eventDetail: eventsList[j] });
         }
       }
     }
   }
 
-  // בדיקת שעות פתיחה
+  //----------------------------
+  // FUNCTION: CHECK IF PLACE IS OPEN
+  //----------------------------
   const isPlaceOpen = (place, currentHour, selectedDay) => {
+    // Returns true if the place is open at the selected day/hour
     if (!place.workHours || place.workHours.length === 0) return false;
     const startDay = new Date(arrive);
     startDay.setDate(startDay.getDate() + selectedDay);
@@ -156,9 +172,9 @@ const Myplan = ({
     const cleanedLine = dayLine.replace(/[\u202F\u2009]/g, " ");
     const [_, hoursRaw] = cleanedLine.split(": ");
     if (!hoursRaw) return false;
-    const lowerHours = hoursRaw.toLowerCase();
-    if (lowerHours.includes("open 24 hours")) return true;
-    if (lowerHours.includes("closed")) return false;
+    if (hoursRaw.toLowerCase().includes("open 24 hours")) return true;
+    if (hoursRaw.toLowerCase().includes("closed")) return false;
+
     const parseTime = (timeStr) => {
       const [time, modifier] = timeStr.trim().split(" ");
       let [hours, minutes] = time.split(":").map(Number);
@@ -166,33 +182,33 @@ const Myplan = ({
       if (modifier === "AM" && hours === 12) hours = 0;
       return { hours, minutes };
     };
+
     const [selHour, selMin] = currentHour.split(":").map(Number);
     const dropMinutes = selHour * 60 + selMin;
     const ranges = hoursRaw.split(",").map((range) => range.trim());
+
     for (let range of ranges) {
       const [openTimeRaw, closeTimeRaw] = range.split("–").map((s) => s.trim());
       if (!openTimeRaw || !closeTimeRaw) continue;
       const open = parseTime(openTimeRaw);
       const close = parseTime(closeTimeRaw);
-      const openMinutes = open.hours * 60 + open.minutes;
+      let openMinutes = open.hours * 60 + open.minutes;
       let closeMinutes = close.hours * 60 + close.minutes;
-      const closesNextDay = closeMinutes <= openMinutes;
-      if (closesNextDay) closeMinutes += 24 * 60;
+      if (closeMinutes <= openMinutes) closeMinutes += 24 * 60; // Overnight
       const adjustedDropMinutes =
-        closesNextDay && dropMinutes < openMinutes
-          ? dropMinutes + 24 * 60
-          : dropMinutes;
+        dropMinutes < openMinutes ? dropMinutes + 24 * 60 : dropMinutes;
       if (
         adjustedDropMinutes >= openMinutes &&
         adjustedDropMinutes <= closeMinutes
-      ) {
+      )
         return true;
-      }
     }
     return false;
   };
 
-  // --------- Helper to format minutes into HH:MM ---------
+  //----------------------------
+  // FUNCTION: FORMAT MINUTES -> HH:MM
+  //----------------------------
   const formatTime = (totalMinutes) => {
     const h = Math.floor(totalMinutes / 60)
       .toString()
@@ -201,7 +217,9 @@ const Myplan = ({
     return `${h}:${m}`;
   };
 
-  // --------- פונקציה אסינכרונית להוספת מקום ---------
+  //----------------------------
+  // FUNCTION: ADD PLACE TO DAY PLAN
+  //----------------------------
   const addPlaceToPlan = async (
     placesArray,
     maxEndMinutes,
@@ -221,7 +239,6 @@ const Myplan = ({
       return { added: false, currentLocation, currentMinutes };
 
     for (let place of availablePlaces) {
-      // זמן נסיעה
       const travelInfo = await getTravelInfo(currentLocation, place.loc);
       const travelMinutes = travelInfo
         ? Math.ceil(travelInfo.durationValue / 60)
@@ -229,6 +246,7 @@ const Myplan = ({
       const placeStartMinutes = currentMinutes + travelMinutes;
       const placeDuration = getDuration(place.type);
       const placeEndMinutes = placeStartMinutes + placeDuration;
+
       if (maxEndMinutes && placeEndMinutes > maxEndMinutes) continue;
       if (isPlaceOpen(place, formatTime(placeStartMinutes), dayIndex)) {
         usedId.push(place.id);
@@ -237,7 +255,7 @@ const Myplan = ({
           ...place,
           arrivalTime: formatTime(placeStartMinutes),
           endTime: formatTime(placeEndMinutes),
-          travelInfo, // פרטי הנסיעה מהמקום הקודם
+          travelInfo,
         });
         return {
           added: true,
@@ -246,10 +264,13 @@ const Myplan = ({
         };
       }
     }
+
     return { added: false, currentLocation, currentMinutes };
   };
 
-  // --------- פונקציה אסינכרונית לבניית יום ---------
+  //----------------------------
+  // FUNCTION: BUILD DAILY PLAN
+  //----------------------------
   const BuildDailyPlan = async (
     dayIndex,
     places,
@@ -258,6 +279,7 @@ const Myplan = ({
     endTime,
     usedIdGlobal
   ) => {
+    // Build plan for a single day with events, cafes, restaurants, other places
     let dayPlan = [];
     let usedId = [];
     let [startHour, startMin] = (startTime || "08:30").split(":").map(Number);
@@ -266,6 +288,9 @@ const Myplan = ({
     const endMinutes = endHour * 60 + endMin;
     let currentLocation = startLocation;
 
+    //----------------------------
+    // FILTER SPECIAL PLACES
+    //----------------------------
     const eventForToday = dayEvent.filter((event) => event.day === dayIndex);
     const bakeryCoffee = places
       .filter((p) => p.type === "Cafe")
@@ -300,11 +325,14 @@ const Myplan = ({
       )
       .sort((a, b) => a.dist - b.dist);
 
-    let cntCoffee = 0;
-    let cntRestaurant = 0;
+    let cntCoffee = 0,
+      cntRestaurant = 0;
 
-    // פונקציה אסינכרונית להוספת מקומות מיוחדים
+    //----------------------------
+    // ADD SPECIAL PLACES BASED ON TIME
+    //----------------------------
     const specilAdd = async (maxEndMinutes) => {
+      // Add cafe or restaurant depending on current time
       if (
         bakeryCoffee.length > 0 &&
         currentMinutes >= 510 &&
@@ -419,7 +447,9 @@ const Myplan = ({
       return false;
     };
 
-    // --- בניית התוכנית ---
+    //----------------------------
+    // BUILD DAY WITH EVENTS
+    //----------------------------
     if (eventForToday.length > 0) {
       for (let event of eventForToday) {
         const todayEvent = event.eventDetail;
@@ -428,7 +458,6 @@ const Myplan = ({
           .map(Number);
         const eventTime = eveHour * 60 + eveMin;
 
-        // לפני האירוע
         while (currentMinutes < eventTime) {
           if (await specilAdd(eventTime)) continue;
           const res = await addPlaceToPlan(
@@ -446,7 +475,6 @@ const Myplan = ({
           currentMinutes = res.currentMinutes;
         }
 
-        // האירוע עצמו
         const eventDuration = 120;
         dayPlan.push({
           name: todayEvent.name,
@@ -461,7 +489,6 @@ const Myplan = ({
           address: todayEvent.address,
           city: todayEvent.city,
         });
-
         currentMinutes = eventTime + eventDuration;
         currentLocation = {
           lat: todayEvent.location.lat,
@@ -469,7 +496,6 @@ const Myplan = ({
         };
       }
 
-      // אחרי האירוע
       while (currentMinutes < endMinutes) {
         if (await specilAdd(endMinutes)) continue;
         const res = await addPlaceToPlan(
@@ -487,7 +513,6 @@ const Myplan = ({
         currentMinutes = res.currentMinutes;
       }
     } else {
-      // יום בלי אירועים
       while (currentMinutes < endMinutes) {
         if (await specilAdd(endMinutes)) continue;
         const res = await addPlaceToPlan(
@@ -509,7 +534,9 @@ const Myplan = ({
     return dayPlan;
   };
 
-  // בניית התוכנית לכל הימים
+  //----------------------------
+  // BUILD ALL DAYS PLANS
+  //----------------------------
   useEffect(() => {
     const buildPlansAsync = async () => {
       const buildPlans = [];
@@ -530,23 +557,20 @@ const Myplan = ({
     buildPlansAsync();
   }, [places, spendDays, dailyHours, arrive, startloc, eventsList]);
 
-  // עדכון סטטוס תוכנית
+  //----------------------------
+  // UPDATE PLAN STATUS
+  //----------------------------
   useEffect(() => {
     if (!dailyHours || dailyHours.length === 0) return;
-    const datestr = dailyHours[0]?.day;
-    const dateEndstr = dailyHours.at(-1)?.day;
-    if (!datestr || !dateEndstr) return;
-    const startdate = new Date(datestr);
-    const endDate = new Date(dateEndstr);
+    const startdate = new Date(dailyHours[0]?.day);
+    const endDate = new Date(dailyHours.at(-1)?.day);
     const todayDate = new Date();
-    if (todayDate <= startdate || todayDate <= endDate) {
-      setIsActive(true);
-    } else {
-      setIsActive(false);
-    }
+    setIsActive(todayDate <= startdate || todayDate <= endDate);
   }, [dailyHours]);
 
-  // שליחה לדשבורד
+  //----------------------------
+  // SEND PLAN TO DASHBOARD
+  //----------------------------
   const handelSendToDashBoard = async (uid) => {
     if (!user) return;
     const data = new FormData();
@@ -565,7 +589,6 @@ const Myplan = ({
     try {
       const res = await axios.post(url, data);
       console.log("Server response:", res.data);
-      console.log("succes send to database");
     } catch (err) {
       console.error("Failed", err);
     }
@@ -578,16 +601,25 @@ const Myplan = ({
     }
   }, [smartDailyPlans, user]);
 
+  //----------------------------
+  // JSX
+  //----------------------------
   return (
     <div className="resualtPlan">
-      {smartDailyPlans.length > 0 && <Link to="/DashBoard">
-      <h1 className="dashReady">Your Plan Is Ready </h1></Link>}
-      {places.length > 0 && smartDailyPlans.length === 0 &&<div className="loadingPlan">
-        <div className="loader"></div>
-         <h1 className="loadingContant"></h1>
-       
-         
-         </div>}
+      {/* Show link to dashboard if plan ready */}
+      {smartDailyPlans.length > 0 && (
+        <Link to="/DashBoard">
+          <h1 className="dashReady">Your Plan Is Ready</h1>
+        </Link>
+      )}
+
+      {/* Show loader if places exist but plan not ready */}
+      {places.length > 0 && smartDailyPlans.length === 0 && (
+        <div className="loadingPlan">
+          <div className="loader"></div>
+          <h1 className="loadingContant"></h1>
+        </div>
+      )}
     </div>
   );
 };

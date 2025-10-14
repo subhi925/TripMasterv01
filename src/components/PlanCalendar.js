@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction"; // Plugin for drag & drop support
+import interactionPlugin from "@fullcalendar/interaction"; // Drag & drop support
 import Button from "react-bootstrap/Button";
 import Modal from "react-bootstrap/Modal";
 import "./PlanCalendar.css";
@@ -9,38 +9,52 @@ import PlacesLst from "./PlacesLst";
 import axios from "axios";
 
 const PlanCalendar = ({
-  places = [],
-  smartDailyPlans = [],
-  dailyHours = [],
-  editPress,
-  finalePress,
-  id,
-  uid,
-  fEvents = [],
-  onEventsUpdated,
+  places = [], // Array of available places for drag-drop
+  smartDailyPlans = [], // Array of daily plans for smart scheduling
+  dailyHours = [], // Array of { day, start, end } for each travel day
+  editPress, // Boolean: enables editable mode
+  finalePress, // Boolean: read-only calendar mode
+  id, // Trip or dashboard ID
+  uid, // User ID
+  fEvents = [], // Array of existing events from DB
+  onEventsUpdated, // Callback when events are updated
+  isShared, // Boolean: trip shared status
+  id_Shared_Trip, // ID of shared trip if applicable
+  startloc, // Starting location object { lat, lng }
 }) => {
-  const [events, setEvents] = useState([]); // Holds all events in the calendar
-  const [selectedEvent, setSelectedEvent] = useState(null); // Holds the selected event for modal display
-  const [placesLst, setPlacesLst] = useState(places);
-  const calendarRef = useRef(null);
-  //--------------------------------------------------
+  //------------------------------------------
+  // State Variables
+  //------------------------------------------
+  const [events, setEvents] = useState([]); // Array of calendar events
+  const [selectedEvent, setSelectedEvent] = useState(null); // Currently selected event for modal
+  const [placesLst, setPlacesLst] = useState(places); // State copy of available places
+  const calendarRef = useRef(null); // Reference to FullCalendar instance
+  const [calcTrans, setCalcTrans] = useState(false); // Boolean: calculating transportation
+
+  //------------------------------------------
+  // Sync places prop to state
+  //------------------------------------------
   useEffect(() => {
     setPlacesLst(places);
   }, [places]);
-  //---------------------------------------
-  // Formats a date string to keep only the date part (YYYY-MM-DD)
+
+  //------------------------------------------
+  // Helper: Format date to YYYY-MM-DD
+  //------------------------------------------
   const formatDate = (str) => new Date(str).toISOString().split("T")[0];
 
-  // Pads numbers to ensure two-digit format for hours and minutes
+  //------------------------------------------
+  // Helper: Pad number for time formatting
+  //------------------------------------------
   const pad = (num) => num.toString().padStart(2, "0");
-  //--------------------------------------------------------------------
-  // place: OBJ Place
-  // dropDate: Date (date & time of drop)
+
+  //------------------------------------------
+  // Check if a place is open at given datetime
+  // place: place object, dropDate: Date object
+  //------------------------------------------
   const isPlaceOpen = (place, dropDate) => {
-    if (place.type === "Camping Area") {
-      return true;
-    }
-    //  אם אין שעות פעילות כלל
+    if (place.type === "Camping Area") return true; // Always open
+
     if (!place.workHours || place.workHours.length === 0) return false;
 
     const weekMap = [
@@ -57,7 +71,7 @@ const PlanCalendar = ({
     const dayLine = place.workHours.find((line) => line.includes(dayLabel));
     if (!dayLine) return false;
 
-    const cleanedLine = dayLine.replace(/[\u202F\u2009]/g, " "); // הסרת תווים בלתי נראים
+    const cleanedLine = dayLine.replace(/[\u202F\u2009]/g, " "); // Remove invisible chars
     const [_, hoursRaw] = cleanedLine.split(": ");
     if (!hoursRaw) return false;
 
@@ -65,7 +79,6 @@ const PlanCalendar = ({
     if (lowerHours.includes("open 24 hours")) return true;
     if (lowerHours.includes("closed")) return false;
 
-    // פונקציה להמרת "9:00 AM" ל- { hours, minutes }
     const parseTime = (timeStr) => {
       const [time, modifier] = timeStr.split(" ");
       let [hours, minutes] = time.split(":").map(Number);
@@ -75,12 +88,11 @@ const PlanCalendar = ({
     };
 
     const dropMinutes = dropDate.getHours() * 60 + dropDate.getMinutes();
-
-    // תמיכה בטווחים מרובים ביום
     const ranges = hoursRaw.split(",").map((range) => range.trim());
+
     for (let range of ranges) {
       const [openTimeRaw, closeTimeRaw] = range.split("–").map((s) => s.trim());
-      if (!openTimeRaw || !closeTimeRaw) continue; // דלג אם הטווח לא תקין
+      if (!openTimeRaw || !closeTimeRaw) continue;
 
       const open = parseTime(openTimeRaw);
       const close = parseTime(closeTimeRaw);
@@ -102,12 +114,12 @@ const PlanCalendar = ({
         return true;
       }
     }
-
-    return false; // לא נמצא טווח מתאים
+    return false;
   };
 
-  //---------------------------------------------------------------------
-  //-------------------sort and remov Duplicated---------------------------------------
+  //------------------------------------------
+  // Remove duplicates and sort fEvents
+  //------------------------------------------
   useEffect(() => {
     if (fEvents.length > 0) {
       const unique = fEvents.filter(
@@ -118,22 +130,20 @@ const PlanCalendar = ({
         (a, b) => new Date(a.start) - new Date(b.start)
       );
 
-      // if just there is change channge the Event
       const isSame = JSON.stringify(events) === JSON.stringify(sorted);
-      if (!isSame) {
-        setEvents(sorted);
-      }
+      if (!isSame) setEvents(sorted);
     }
   }, [fEvents]);
-  //--------------------------------------------------------------------
 
-  // Builds event objects from smartDailyPlans and dailyHours
+  //------------------------------------------
+  // Build events from smartDailyPlans & dailyHours
+  //------------------------------------------
   const buildEvents = () => {
     const result = [];
 
     for (let dayIndex = 0; dayIndex < smartDailyPlans.length; dayIndex++) {
-      const dayPlans = smartDailyPlans[dayIndex];
-      const dateStr = formatDate(dailyHours[dayIndex]?.day); // Format: YYYY-MM-DD
+      const dayPlans = smartDailyPlans[dayIndex]; // Array of plans for this day
+      const dateStr = formatDate(dailyHours[dayIndex]?.day); // YYYY-MM-DD
 
       for (let plan of dayPlans) {
         const [startHour, startMin] = plan.arrivalTime.split(":").map(Number);
@@ -146,35 +156,43 @@ const PlanCalendar = ({
           title:
             plan.name.length > 15
               ? plan.name.substring(0, 15) + "…"
-              : plan.name, // Event title
-          type: plan.type, // Type of activity
-          start, // Event start time
-          end, // Event end time
-          description: plan.description, // Optional description
-          photo: plan.image, // Optional image URL
+              : plan.name,
+          type: plan.type,
+          start,
+          end,
+          description: plan.description,
+          photo: plan.image,
           loc: plan.loc,
-          // isFixed: plan.name === "Return Home", //  Mark as fixed event if it's "Return Home"
-          originalData: plan, // Store original plan data
+          originalData: plan, // keep original plan
         });
       }
     }
-
-    setEvents(result); // Update events state
+    setEvents(result);
   };
 
+  //------------------------------------------
+  // Build events on first load if fEvents empty
+  //------------------------------------------
   useEffect(() => {
     if (smartDailyPlans.length && dailyHours.length && fEvents.length === 0) {
       buildEvents();
     }
   }, [smartDailyPlans, dailyHours]);
-  //--------------------------------------------------
+
+  //------------------------------------------
+  // Send events to DB
+  //------------------------------------------
   const sendEventCalenderToDb = async () => {
     const data = new FormData();
     data.append("uid", uid);
     data.append("eventCalender", JSON.stringify(events));
     data.append("id", id);
+    data.append("isShared", isShared);
+    data.append("id_Shared_Trip", id_Shared_Trip);
+
     const url =
       "http://localhost:8080/www/tripmasterv01/public/UploadToDashboardEventCalender.php";
+
     try {
       const res = await axios.post(url, data);
       console.log("Server response:", res.data);
@@ -182,61 +200,57 @@ const PlanCalendar = ({
       console.error("Failed", err);
     }
   };
-  //
+
+  //------------------------------------------
+  // Sync events with DB on change
+  //------------------------------------------
   useEffect(() => {
     if (events.length > 0) {
       const original = JSON.stringify(events);
       const dbEvents = JSON.stringify(fEvents);
-      if (original !== dbEvents) {
-        const callsendEventDB = async () => {
-          await sendEventCalenderToDb();
-        };
-        callsendEventDB();
-      }
+      if (original !== dbEvents) sendEventCalenderToDb();
     }
   }, [events]);
-  //-----------if threr no change on event no need to call/just on change call------------------
+
+  //------------------------------------------
+  // Notify parent component on edit
+  //------------------------------------------
   useEffect(() => {
     if (editPress && onEventsUpdated) {
       const original = JSON.stringify(events);
       const incoming = JSON.stringify(fEvents);
-      if (original !== incoming) {
-        onEventsUpdated(events);
-      }
+      if (original !== incoming) onEventsUpdated(events);
     }
   }, [events]);
-  //-----------------------------------------
-  // this effect checks if there are any events in the calendar
-  // If there are events and the fEvents array is empty, it calls onEventsUpdated with the current events
-  // This ensures that the parent component is notified of any changes to the events and updates accordingly
-  // This is useful for synchronizing the calendar with the parent component's state
+
+  //------------------------------------------
+  // Initial notify parent if fEvents is empty
+  //------------------------------------------
   useEffect(() => {
     if (events.length > 0 && fEvents.length === 0) {
       onEventsUpdated(events);
     }
   }, [events]);
 
-  //----------------------------------------------
-
-  // Delete event only if it's not fixed
-  // Fixed events are those that should not be deleted, like "events"
+  //------------------------------------------
+  // Delete event
+  //------------------------------------------
   const deleteEvent = (eventToDelete) => {
-    if (eventToDelete?.isFixed) return; // Block deletion for fixed events
+    if (eventToDelete?.isFixed) return; // Do not delete fixed events
     setEvents((prev) => prev.filter((e) => e.id !== eventToDelete.id));
     setSelectedEvent(null);
   };
 
-  //-----------------------------------------
-
+  //------------------------------------------
+  // Handle event time change (drag/drop or resize)
+  //------------------------------------------
   const handleEventTimeChange = (info) => {
     const { event } = info;
-    // not allow to change time if the event is fixed
     if (event.extendedProps?.isFixed) {
-      info.revert(); // revert if dragged/changed
+      info.revert(); // Revert if event is fixed
       return;
     }
 
-    // Update the events array in state
     setEvents((prevEvents) =>
       prevEvents.map((e) =>
         e.id === event.id
@@ -248,11 +262,12 @@ const PlanCalendar = ({
           : e
       )
     );
-
-    // update on the DB
     sendEventCalenderToDb();
   };
-  //------use Effect when changre plan to go to it in the calender----
+
+  //------------------------------------------
+  // Navigate calendar to first travel day
+  //------------------------------------------
   useEffect(() => {
     if (dailyHours[0]?.day && calendarRef.current) {
       const calendarApi = calendarRef.current.getApi();
@@ -260,193 +275,280 @@ const PlanCalendar = ({
     }
   }, [dailyHours]);
 
-  //------------------------------------
+  //------------------------------------------
+  // Get travel info between two locations
+  //------------------------------------------
+  const getTravelInfo = async (
+    origin,
+    destination,
+    mode = "transit",
+    transitMode = "bus"
+  ) => {
+    const apiKey = process.env.REACT_APP_KEY_GOOGLE;
+    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&mode=${mode}&transit_mode=${transitMode}&key=${apiKey}`;
+    try {
+      const res = await fetch(url);
+      const data = await res.json();
+      if (data.routes && data.routes.length > 0) {
+        const leg = data.routes[0].legs[0];
+        return {
+          duration: leg.duration.text,
+          durationValue: leg.duration.value, // in seconds
+          distance: leg.distance.text,
+          mode: mode,
+          transitDetails: leg.steps
+            .filter((step) => step.travel_mode === "TRANSIT")
+            .map((step) => ({
+              lineName:
+                step.transit_details?.line?.short_name ||
+                step.transit_details?.line?.name,
+              vehicleType: step.transit_details?.line?.vehicle?.type,
+              departureStop: step.transit_details?.departure_stop?.name,
+              arrivalStop: step.transit_details?.arrival_stop?.name,
+              numStops: step.transit_details?.num_stops,
+            })),
+        };
+      }
+    } catch (err) {
+      console.error("Directions API error:", err);
+    }
+    return null;
+  };
+
+  //------------------------------------------
+  // Add travel times to events based on locations
+  //------------------------------------------
+  const fetchtransportation = async () => {
+    setCalcTrans(true);
+    const newEvents = [...events];
+
+    for (let dayIndex = 0; dayIndex < dailyHours.length; dayIndex++) {
+      let dateStr = dailyHours[dayIndex]?.day; // Travel day
+      let currentLocation = startloc;
+
+      for (let i = 0; i < newEvents.length; i++) {
+        const eventDate = newEvents[i].start.split("T")[0];
+        if (eventDate === dateStr) {
+          const travelInfo = await getTravelInfo(
+            currentLocation,
+            newEvents[i].loc
+          );
+
+          if (travelInfo) {
+            const startDateTime = new Date(newEvents[i].start);
+            const endDateTime = new Date(newEvents[i].end);
+            const diffMS = endDateTime - startDateTime;
+
+            const startMinutes =
+              startDateTime.getHours() * 60 + startDateTime.getMinutes();
+            const travelMinutes = Math.ceil(travelInfo.durationValue / 60);
+            let newStartMinutes = startMinutes + travelMinutes;
+
+            if (newStartMinutes >= 24 * 60) newStartMinutes = 24 * 60 - 1;
+
+            const newStart = new Date(startDateTime);
+            newStart.setHours(Math.floor(newStartMinutes / 60));
+            newStart.setMinutes(newStartMinutes % 60);
+
+            const newEnd = new Date(newStart.getTime() + diffMS);
+
+            newEvents[i].start = newStart.toISOString();
+            newEvents[i].end = newEnd.toISOString();
+
+            newEvents[i].originalData = {
+              ...newEvents[i].originalData,
+              travelInfo,
+            };
+
+            currentLocation = newEvents[i].loc;
+          }
+        }
+      }
+    }
+
+    setEvents(newEvents);
+    setCalcTrans(false);
+  };
+
+  //------------------------------------------
+  // Render JSX
+  //------------------------------------------
   return (
     <div>
-      {editPress && (
-        <div className="page-container">
-          <div className="calendar-container">
-            {" "}
-            <FullCalendar
-              ref={calendarRef}
-              plugins={[timeGridPlugin, interactionPlugin]} // Enable calendar with interaction
-              initialView="timeGrid"
-              duration={{ days: dailyHours.length }}
-              initialDate={dailyHours[0]?.day ?? new Date()} // Start from first travel day
-              editable={true} // Enable dragging/resizing
-              droppable={true} // Enable external drops
-              events={events} // Set calendar events
-              // שעות התוכנית — אם dailyHours מוגדר משתמשים בו, אחרת ברירת מחדל
-              slotMinTime="00:00:00"
-              slotMaxTime="24:00:00"
-              allDaySlot={false} // Remove all-day slot
-              height="auto" // Auto height
-              // Limit the visible date range to the travel period
-              visibleRange={{
-                start: dailyHours[0]?.day,
-                end: new Date(
-                  new Date(dailyHours.at(-1)?.day).getTime() +
-                    24 * 60 * 60 * 1000
-                ),
-              }}
-              // dragging if event is fixed, or if time slot is invalid, or if overlapping
-              eventAllow={(dropInfo, draggedEvent) => {
-                const dropStart = dropInfo.start;
-                const dropEnd = dropInfo.end;
+      {/* Editable Calendar */}
+      {editPress && !calcTrans ? (
+        <div>
+          <span
+            className="menuePart"
+            onClick={async () => await fetchtransportation()}>
+            Save and Add Transportation
+          </span>
+          <div className="page-container">
+            <div className="calendar-container">
+              <FullCalendar
+                ref={calendarRef}
+                plugins={[timeGridPlugin, interactionPlugin]}
+                initialView="timeGrid"
+                duration={{ days: dailyHours.length }}
+                initialDate={dailyHours[0]?.day ?? new Date()}
+                editable={true}
+                droppable={true}
+                events={events}
+                slotMinTime="00:00:00"
+                slotMaxTime="24:00:00"
+                allDaySlot={false}
+                height="auto"
+                visibleRange={{
+                  start: dailyHours[0]?.day,
+                  end: new Date(
+                    new Date(dailyHours.at(-1)?.day).getTime() +
+                      24 * 60 * 60 * 1000
+                  ),
+                }}
+                // Validate drag-drop
+                eventAllow={(dropInfo, draggedEvent) => {
+                  const dropStart = dropInfo.start;
+                  const dropEnd = dropInfo.end;
+                  if (draggedEvent.extendedProps?.isFixed) return false;
 
-                // Disallow dragging fixed events
-                if (draggedEvent.extendedProps?.isFixed) return false;
-
-                // Check if date is within trip
-                const dropDayStr = dropStart.toISOString().split("T")[0];
-                const allowedDay = dailyHours.find((d) => d.day === dropDayStr);
-                if (!allowedDay) return false;
-
-                // Prevent overlapping with other events
-                const newStart = dropStart.getTime();
-                const newEnd =
-                  dropEnd?.getTime() ?? newStart + 2 * 60 * 60 * 1000;
-                const isConflict = events.some((e) => {
-                  if (e.id === draggedEvent.id) return false;
-                  const eStart = new Date(e.start).getTime();
-                  const eEnd = new Date(e.end).getTime();
-                  return newStart < eEnd && newEnd > eStart;
-                });
-
-                return !isConflict;
-              }}
-              // Prevent moving fixed events
-              eventReceive={(info) => {
-                const eventDataStr = info.draggedEl.getAttribute("data-event");
-                if (!eventDataStr) {
-                  info.event.remove();
-                  return;
-                }
-                const eventData = JSON.parse(eventDataStr);
-                if (!eventData.originalData) {
-                  info.event.remove();
-                  return;
-                }
-
-                const dropDate = info.event.start;
-                // check if dropped place is open in this time
-                if (!isPlaceOpen(eventData.originalData, dropDate)) {
-                  alert(
-                    "This place is closed at this time. Please choose a different time."
+                  const dropDayStr = dropStart.toISOString().split("T")[0];
+                  const allowedDay = dailyHours.find(
+                    (d) => d.day === dropDayStr
                   );
-                  info.event.remove();
-                  return;
-                }
+                  if (!allowedDay) return false;
 
-                const isDuplicate = events.some((e) => e.id === eventData.id);
-                if (isDuplicate) {
-                  info.event.remove();
-                  return;
-                }
+                  const newStart = dropStart.getTime();
+                  const newEnd =
+                    dropEnd?.getTime() ?? newStart + 2 * 60 * 60 * 1000;
+                  const isConflict = events.some((e) => {
+                    if (e.id === draggedEvent.id) return false;
+                    const eStart = new Date(e.start).getTime();
+                    const eEnd = new Date(e.end).getTime();
+                    return newStart < eEnd && newEnd > eStart;
+                  });
+                  return !isConflict;
+                }}
+                // Handle event receive (dragged from side)
+                eventReceive={(info) => {
+                  const eventDataStr =
+                    info.draggedEl.getAttribute("data-event");
+                  if (!eventDataStr) return info.event.remove();
 
-                const startDate = info.event.start;
-                const endDate = new Date(
-                  startDate.getTime() + 2 * 60 * 60 * 1000
-                ); // ساعتين بعد البداية
+                  const eventData = JSON.parse(eventDataStr);
+                  if (!eventData.originalData) return info.event.remove();
 
-                info.event.setStart(startDate);
-                info.event.setEnd(endDate);
+                  const dropDate = info.event.start;
+                  if (!isPlaceOpen(eventData.originalData, dropDate)) {
+                    alert("This place is closed at this time.");
+                    return info.event.remove();
+                  }
 
-                info.event.setProp(
-                  "title",
-                  eventData.title.length > 15
-                    ? eventData.title.substring(0, 15) + "…"
-                    : eventData.title
-                );
-                info.event.setExtendedProp("type", eventData.type);
-                info.event.setExtendedProp(
-                  "description",
-                  eventData.description
-                );
-                info.event.setExtendedProp("photo", eventData.photo);
-                info.event.setExtendedProp("loc", eventData.loc);
-                info.event.setExtendedProp(
-                  "originalData",
-                  eventData.originalData
-                );
-                info.event.setExtendedProp(
-                  "isFixed",
-                  eventData.title === "Return Home"
-                );
+                  if (events.some((e) => e.id === eventData.id))
+                    return info.event.remove();
 
-                setEvents((prev) => [
-                  ...prev,
-                  {
-                    id: eventData.id,
-                    title: eventData.title,
-                    type: eventData.type,
-                    start: startDate.toISOString(),
-                    end: endDate.toISOString(),
-                    description: eventData.description,
-                    photo: eventData.photo,
-                    loc: eventData.loc,
-                    originalData: eventData.originalData,
-                    isFixed: eventData.title === "Return Home",
-                  },
-                ]);
+                  const startDate = info.event.start;
+                  const endDate = new Date(
+                    startDate.getTime() + 2 * 60 * 60 * 1000
+                  );
 
-                setPlacesLst((prevPlaces) =>
-                  prevPlaces.filter((p) => p.id !== eventData.id)
-                );
-              }}
-              // When clicking an event, open its modal with details
-              eventClick={(info) => {
-                setSelectedEvent({
-                  id: info.event.id,
-                  isFixed: info.event.extendedProps?.isFixed,
-                  ...info.event.extendedProps.originalData,
-                });
-              }}
-              eventDrop={(info) => handleEventTimeChange(info)}
-              eventResize={(info) => handleEventTimeChange(info)}
-            />
-          </div>
+                  info.event.setStart(startDate);
+                  info.event.setEnd(endDate);
 
-          <div className="sidesidebar">
-            <PlacesLst
-              places={placesLst.filter(
-                (place) => !events.some((event) => event.id === place.id)
-              )}
-            />
+                  info.event.setProp(
+                    "title",
+                    eventData.title.length > 15
+                      ? eventData.title.substring(0, 15) + "…"
+                      : eventData.title
+                  );
+                  info.event.setExtendedProp("type", eventData.type);
+                  info.event.setExtendedProp(
+                    "description",
+                    eventData.description
+                  );
+                  info.event.setExtendedProp("photo", eventData.photo);
+                  info.event.setExtendedProp("loc", eventData.loc);
+                  info.event.setExtendedProp(
+                    "originalData",
+                    eventData.originalData
+                  );
+                  info.event.setExtendedProp(
+                    "isFixed",
+                    eventData.title === "Return Home"
+                  );
+
+                  setEvents((prev) => [
+                    ...prev,
+                    {
+                      id: eventData.id,
+                      title: eventData.title,
+                      type: eventData.type,
+                      start: startDate.toISOString(),
+                      end: endDate.toISOString(),
+                      description: eventData.description,
+                      photo: eventData.photo,
+                      loc: eventData.loc,
+                      originalData: eventData.originalData,
+                      isFixed: eventData.title === "Return Home",
+                    },
+                  ]);
+
+                  setPlacesLst((prevPlaces) =>
+                    prevPlaces.filter((p) => p.id !== eventData.id)
+                  );
+                }}
+                eventClick={(info) => {
+                  setSelectedEvent({
+                    id: info.event.id,
+                    isFixed: info.event.extendedProps?.isFixed,
+                    ...info.event.extendedProps.originalData,
+                  });
+                }}
+                eventDrop={handleEventTimeChange}
+                eventResize={handleEventTimeChange}
+              />
+            </div>
+
+            <div className="sidesidebar">
+              <PlacesLst
+                places={placesLst.filter(
+                  (place) => !events.some((event) => event.id === place.id)
+                )}
+              />
+            </div>
           </div>
         </div>
+      ) : (
+        calcTrans &&
+        editPress && (
+          <div>
+            <div className="loader"></div>
+            <h1 className="loadingContant"></h1>
+          </div>
+        )
       )}
 
-      {/* The Finale Plan No Edit */}
+      {/* Finale (Read-only) Calendar */}
       {finalePress && (
         <FullCalendar
           ref={calendarRef}
           headerToolbar={false}
-          plugins={[timeGridPlugin, interactionPlugin]} // Enable calendar with interaction
-          // שינוי כאן: תצוגה מותאמת לכל ימי הטיול בלבד
+          plugins={[timeGridPlugin, interactionPlugin]}
           initialView="timeGrid"
           duration={{ days: dailyHours.length }}
-          initialDate={dailyHours[0]?.day ?? new Date()} // Start from first travel day
-          editable={false} // No dragging/resizing
-          droppable={false} // No external drops
-          events={events} // Set calendar events
-          // שעות התוכנית — אם dailyHours מוגדר משתמשים בו, אחרת ברירת מחדל
-          slotMinTime={
-            dailyHours[0]?.start ? `${dailyHours[0].start}:00` : "07:00:00"
-          }
-          slotMaxTime={
-            dailyHours[0]?.end ? `${dailyHours[0].end}:00` : "24:00:00"
-          }
-          allDaySlot={false} // Remove all-day slot
-          height="auto" // Auto height
-          // Limit the visible date range to the travel period
+          initialDate={dailyHours[0]?.day ?? new Date()}
+          editable={false}
+          droppable={false}
+          events={events}
+          slotMinTime={"05:00:00"}
+          slotMaxTime={"24:00:00"}
+          allDaySlot={false}
+          height="auto"
           visibleRange={{
             start: dailyHours[0]?.day,
             end: new Date(
               new Date(dailyHours.at(-1)?.day).getTime() + 24 * 60 * 60 * 1000
             ),
           }}
-          // When clicking an event, open its modal with details
           eventClick={(info) => {
             setSelectedEvent({
               id: info.event.id,
@@ -456,16 +558,17 @@ const PlanCalendar = ({
           }}
         />
       )}
-      {/* Modal that shows when user clicks on an event */}
+
+      {/* Event Modal */}
       <Modal
         show={selectedEvent !== null}
         onHide={() => setSelectedEvent(null)}
-        centered
-      >
+        centered>
         <Modal.Header closeButton>
           <Modal.Title>{selectedEvent?.name}</Modal.Title>
         </Modal.Header>
         <Modal.Body>
+          {/* Display event details */}
           {selectedEvent?.type === "Event" ? (
             <>
               <p>
@@ -512,8 +615,7 @@ const PlanCalendar = ({
                   <a
                     href={selectedEvent.website}
                     target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                    rel="noopener noreferrer">
                     {selectedEvent.website}
                   </a>
                 ) : (
@@ -522,19 +624,12 @@ const PlanCalendar = ({
               </p>
               <p>
                 <strong>Price Level:</strong>{" "}
-                {selectedEvent?.priceLevel !== null &&
-                selectedEvent?.priceLevel !== undefined
-                  ? selectedEvent.priceLevel
-                  : "No INFO"}
+                {selectedEvent?.priceLevel ?? "No INFO"}
               </p>
               <p>
                 <strong>Rating by Google:</strong>{" "}
-                {selectedEvent?.rating !== null &&
-                selectedEvent?.rating !== undefined
-                  ? selectedEvent.rating
-                  : "No Rating"}
+                {selectedEvent?.rating ?? "No Rating"}
               </p>
-
               {selectedEvent?.photo && (
                 <img
                   src={selectedEvent.photo}
@@ -552,8 +647,7 @@ const PlanCalendar = ({
                         marginBottom: "10px",
                         borderBottom: "1px solid #ccc",
                         paddingBottom: "5px",
-                      }}
-                    >
+                      }}>
                       <p>
                         <strong>{review.author_name}</strong> - Rating:{" "}
                         {review.rating ?? "No rating"}
@@ -569,10 +663,8 @@ const PlanCalendar = ({
                       <a
                         href={review.author_url}
                         target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {" "}
-                        View on Google{" "}
+                        rel="noopener noreferrer">
+                        View on Google
                       </a>
                     </div>
                   ))}

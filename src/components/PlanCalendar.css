@@ -4,7 +4,7 @@
   justify-content: center;
   align-items: center;
   overflow-x: auto;
-  padding: 1px;
+  padding: 10px;
 }
 .page-container {
   display: flex;
@@ -59,6 +59,44 @@
 .fc-scrollgrid th {
   border-color: black !important;
   border-width: 2px !important;
+}
+
+.loader{
+  margin : 10px;
+  justify-content: center;
+  justify-items: center;
+  border-radius: 20px;
+  width: 15px;
+  height: 15px;
+  background-color: lightblue;
+  position: relative;
+  animation-name: MyLoadingAnimation;
+  animation-duration: 2s;
+  animation-iteration-count: infinite;
+
+}
+@keyframes MyLoadingAnimation {
+  0%   {background-color:lightblue; left:0px; top:0px;}
+  25%  {background-color:rgb(148, 184, 196); left:25px; top:0px;}
+  50%  {background-color:rgb(119, 147, 156); left:25px; top:25px;}
+  75%  {background-color:rgb(76, 96, 102); left:0px; top:25px;}
+  100% {background-color:rgb(28, 36, 39); left:0px; top:0px;}
+}
+.loadingContant::before{
+  content: "";
+  animation: changigText 15s infinite;
+
+}
+@keyframes changigText {
+  0%   { content: "Loading......"; opacity: 1; }
+  20%  { opacity: 0; }
+  25%  { content: "Getting Transporting.."; opacity: 1; }
+  45%  { opacity: 0; }
+  50%  { content: "Build Your Plan..."; opacity: 1; }
+  70%  { opacity: 0; }
+  75%  { content: "Trip Mastering...."; opacity: 1; }
+  95%  { opacity: 0; }
+  100% { content: "Will Done Soon....."; opacity: 1; }
 }
 /* Responsive לטלפונים */
 @media (max-width: 900px) {

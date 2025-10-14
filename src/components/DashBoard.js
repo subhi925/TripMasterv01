@@ -14,35 +14,38 @@ const DashBoard = () => {
   //----------------------------
   // STATE VARIABLES
   //----------------------------
-  const [editPress, setEditPress] = useState(false);
-  const [finalePress, setFinalePress] = useState(true);
-  const [selectedPlanIndex, setSelectedPlanIndex] = useState(0);
-  const [user] = useAuthState(auth);
-  const [dashboardData, setDashboardData] = useState([]);
-  const [displayName, setDisplayName] = useState("");
-  const [deletePlan, setDeletePlan] = useState(false);
-  const [idDB, setIdDB] = useState(-1);
-  const [changeDate, setChangeDate] = useState(false);
-  const [newArrive, setNewArrive] = useState("");
-  const [changed, setChanged] = useState("");
-  const [showMap, setShowMap] = useState(false);
-  const [dayPlanShow, setDayPlanShow] = useState("");
-  const [showHistory, setShowHistory] = useState(false);
-  const [myBulletin, setMyBulletin] = useState(false);
-  const [findPartner, setFindPartner] = useState(false);
+  const [editPress, setEditPress] = useState(false); // Edit mode flag
+  const [finalePress, setFinalePress] = useState(true); // Final view mode flag
+  const [selectedPlanIndex, setSelectedPlanIndex] = useState(0); // Selected trip index
+  const [user] = useAuthState(auth); // Firebase authenticated user
+  const [dashboardData, setDashboardData] = useState([]); // All trip plans
+  const [displayName, setDisplayName] = useState(""); // User name display
+  const [deletePlan, setDeletePlan] = useState(false); // Trigger for plan deletion
+  const [idDB, setIdDB] = useState(-1); // ID of plan to delete
+  const [changeDate, setChangeDate] = useState(false); // Flag for date change mode
+  const [newArrive, setNewArrive] = useState(""); // New arrival date input
+  const [changed, setChanged] = useState(""); // Change confirmation message
+  const [showMap, setShowMap] = useState(false); // Toggle map view
+  const [dayPlanShow, setDayPlanShow] = useState(""); // Currently selected day for display
+  const [showHistory, setShowHistory] = useState(false); // Show history section
+  const [myBulletin, setMyBulletin] = useState(false); // Show bulletin board
+  const [findPartner, setFindPartner] = useState(false); // Show partner section
 
   //----------------------------
   // FETCH DASHBOARD DATA
-  // Loads user trip plans from PHP backend using user ID
+  // Load user trips from backend using uid
   //----------------------------
   const loadParmetersPlan = async (uid) => {
     const data = new FormData();
     data.append("uid", uid);
+
     const url =
       "http://localhost:8080/www/tripmasterv01/public/loadtodashboard.php";
+
     try {
       const res = await axios.post(url, data);
       if (res.data) {
+        // Parse JSON strings inside each plan
         const getData = res.data.map((item) => ({
           ...item,
           places: JSON.parse(item.places || []),
@@ -74,7 +77,7 @@ const DashBoard = () => {
   }, [user]);
 
   //----------------------------
-  // MENU ACTIONS (EDIT / FINAL VIEW)
+  // MENU ACTIONS
   //----------------------------
   const handelfinale = () => {
     setEditPress(false);
@@ -101,7 +104,9 @@ const DashBoard = () => {
     const data = new FormData();
     data.append("uid", uid);
     data.append("id", idDB);
+
     const url = "http://localhost:8080/www/tripmasterv01/public/DeletPlan.php";
+
     try {
       const res = await axios.post(url, data);
       if (res.data) console.log("the delete is", res.data);
@@ -119,6 +124,7 @@ const DashBoard = () => {
         )
       ) {
         setIdDB(dashboardData[index].id);
+
         const newData = dashboardData.filter((_, i) => i !== index);
         setDashboardData(newData);
 
@@ -133,7 +139,7 @@ const DashBoard = () => {
   };
 
   //----------------------------
-  // EFFECT TO DELETE PLAN FROM DATABASE AFTER CONFIRMATION
+  // EFFECT TO DELETE PLAN FROM DATABASE
   //----------------------------
   useEffect(() => {
     const fetchAfterDelete = async () => {
@@ -185,23 +191,28 @@ const DashBoard = () => {
         dashboardData[selectedPlanIndex]?.dailyHours[0]?.day
       );
       let nArrive = new Date(newArrive);
-      let dif = (nArrive - oldArrive) / 86400000;
+      let dif = (nArrive - oldArrive) / 86400000; // Difference in days
 
       const newDashboardData = [...dashboardData];
+
+      // Update start and end dates
       const startDateold = new Date(
         newDashboardData[selectedPlanIndex].startDate
       );
       const startDateobj = new Date(startDateold.getTime() + dif * 86400000);
       const updatedstartDate = startDateobj.toISOString().split("T")[0];
+
       const endDateold = new Date(newDashboardData[selectedPlanIndex].endDate);
       const endDateobj = new Date(endDateold.getTime() + dif * 86400000);
       const updatedEndDate = endDateobj.toISOString().split("T")[0];
 
+      // Shift event calendar dates
       const updatedEventCalender = shiftEventCalenderDates(
         newDashboardData[selectedPlanIndex].eventCalender,
         dif
       );
 
+      // Shift dailyHours dates
       const updatedDailyHours = newDashboardData[
         selectedPlanIndex
       ].dailyHours.map((item) => {
@@ -226,7 +237,7 @@ const DashBoard = () => {
   };
 
   //----------------------------
-  // SHIFT EVENT DATES WHEN TRIP DATE CHANGES
+  // SHIFT EVENT CALENDAR DATES
   //----------------------------
   const shiftEventCalenderDates = (eventsArr, days) => {
     return eventsArr.map((event) => {
@@ -243,7 +254,7 @@ const DashBoard = () => {
   };
 
   //----------------------------
-  // UPDATE PLAN IN DATABASE AFTER DATE CHANGE
+  // UPDATE DASHBOARD PLAN IN DATABASE
   //----------------------------
   const updateDashboardInDB = async (updatedPlan) => {
     const data = new FormData();
@@ -276,7 +287,7 @@ const DashBoard = () => {
   }, [selectedPlanIndex, dashboardData]);
 
   //----------------------------
-  // SHOW HISTORY SECTION
+  // SHOW HISTORY / BULLETIN / PARTNER SECTIONS
   //----------------------------
   const openHistory = () => {
     setShowHistory(true);
@@ -287,9 +298,6 @@ const DashBoard = () => {
     setFindPartner(false);
   };
 
-  //----------------------------
-  // SHOW BULLETIN BOARD SECTION
-  //----------------------------
   const handelBulletin = () => {
     setMyBulletin(true);
     setChangeDate(false);
@@ -299,9 +307,6 @@ const DashBoard = () => {
     setFindPartner(false);
   };
 
-  //----------------------------
-  // SHOW FIND PARTNER SECTION
-  //----------------------------
   const handelFindPartner = () => {
     setFindPartner(true);
     setMyBulletin(false);
@@ -319,7 +324,7 @@ const DashBoard = () => {
   }, [dashboardData]);
 
   //----------------------------
-  // MAIN COMPONENT RENDER
+  // JSX / COMPONENT RENDER
   //----------------------------
   return (
     <div>
@@ -330,14 +335,6 @@ const DashBoard = () => {
           <p className="usershowName">{displayName}</p>
         </div>
       )}
-
-      {/* Shared Trip Indicator */}
-      {dashboardData.length > 0 &&
-        dashboardData[selectedPlanIndex]?.isShared === "Yes" && (
-          <div className="sharedTripIndicator">
-            <h3>SHARED</h3>
-          </div>
-        )}
 
       {/* Top Menu */}
       <div className="menueDash">
@@ -401,6 +398,14 @@ const DashBoard = () => {
           </div>
         )}
 
+        {/* Shared Trip Indicator */}
+        {dashboardData.length > 0 &&
+          dashboardData[selectedPlanIndex]?.isShared === "Yes" && (
+            <div className="sharedTripIndicator">
+              <h4 className="sharedPlan">SHARED</h4>
+            </div>
+          )}
+
         {/* Final Plan View */}
         {dashboardData.length > 0 && finalePress && (
           <div className="finalPlanContainer">
@@ -428,6 +433,7 @@ const DashBoard = () => {
                   />
                 </div>
 
+                {/* Day Buttons */}
                 <div className="btn-containr">
                   {dashboardData[selectedPlanIndex].dailyHours.map(
                     (daydate, idx) => (
@@ -503,6 +509,10 @@ const DashBoard = () => {
                 id={dashboardData[selectedPlanIndex]?.id || -1}
                 uid={user.uid}
                 fEvents={dashboardData[selectedPlanIndex]?.eventCalender || []}
+                isShared={dashboardData[selectedPlanIndex]?.isShared || "No"}
+                id_Shared_Trip={
+                  dashboardData[selectedPlanIndex]?.id_Shared_Trip || null
+                }
                 onEventsUpdated={handleEventsUpdated}
               />
             )}
@@ -522,6 +532,13 @@ const DashBoard = () => {
             id={dashboardData[selectedPlanIndex]?.id || -1}
             uid={user.uid}
             fEvents={dashboardData[selectedPlanIndex]?.eventCalender || []}
+            isShared={dashboardData[selectedPlanIndex]?.isShared || "No"}
+            id_Shared_Trip={
+              dashboardData[selectedPlanIndex]?.id_Shared_Trip || null
+            }
+            startloc={
+              dashboardData[selectedPlanIndex]?.startloc || { lat: 0, lng: 0 }
+            }
             onEventsUpdated={handleEventsUpdated}
           />
         )}
@@ -534,6 +551,7 @@ const DashBoard = () => {
             dashboardData={dashboardData || []}
             uid={user.uid}
             email={user.email}
+            loadParmetersPlan={loadParmetersPlan}
           />
         )}
       </div>

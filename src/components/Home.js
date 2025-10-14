@@ -1,25 +1,35 @@
-import React, { useEffect, useState } from "react"; //imrse
+import React, { useEffect, useState } from "react"; // React hooks
 import "./Home.css";
-import axios from "axios";
-import { auth } from "../fire";
-import { useAuthState } from "react-firebase-hooks/auth";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react"; //npm install @lottiefiles/dotlottie-react
+import axios from "axios"; // HTTP requests
+import { auth } from "../fire"; // Firebase auth
+import { useAuthState } from "react-firebase-hooks/auth"; // Firebase hook
+import { DotLottieReact } from "@lottiefiles/dotlottie-react"; // Animated Lottie component
 
+//----------------------------
+// HOME COMPONENT
+//----------------------------
 const Home = () => {
-  //sfc
-  const [user] = useAuthState(auth);
-  const [dashboardData, setDashboardData] = useState([]);
-  const [moveOldPlansToHistory, setMoveOldPlansToHistory] = useState([]);
+  //----------------------------
+  // STATE VARIABLES
+  //----------------------------
+  const [user] = useAuthState(auth); // Current logged-in user
+  const [dashboardData, setDashboardData] = useState([]); // Array of all trips on dashboard
+  const [moveOldPlansToHistory, setMoveOldPlansToHistory] = useState([]); // Indexes of old trips to move to history
 
-  //Load the parmeters value for plan to check if the trip date pass to move to history....
+  //----------------------------
+  // FUNCTION: LOAD DASHBOARD DATA
+  // Load user's trips from the backend and parse JSON fields
+  //----------------------------
   const loadParmetersPlan = async (uid) => {
     const data = new FormData();
     data.append("uid", uid);
     const url =
       "http://localhost:8080/www/tripmasterv01/public/loadtodashboard.php";
+
     try {
       const res = await axios.post(url, data);
       if (res.data) {
+        // Parse JSON fields for each trip
         const getData = res.data.map((item) => ({
           ...item,
           places: item.places ? JSON.parse(item.places) : [],
@@ -28,7 +38,7 @@ const Home = () => {
           eventCalender: JSON.parse(item.eventCalender || []),
           startloc: JSON.parse(item.startloc || []),
         }));
-        setDashboardData(getData);
+        setDashboardData(getData); // Save trips to state
       } else {
         console.log("Invalid Format");
       }
@@ -37,6 +47,9 @@ const Home = () => {
     }
   };
 
+  //----------------------------
+  // USE EFFECT: FETCH DASHBOARD DATA WHEN USER CHANGES
+  //----------------------------
   useEffect(() => {
     const fetchParmeters = async () => {
       if (user) {
@@ -45,7 +58,10 @@ const Home = () => {
     };
     fetchParmeters();
   }, [user]);
-  //----------------filtered the old plans if they exits save there index to move them and update the dashboard--------------------
+
+  //----------------------------
+  // USE EFFECT: FIND OLD PLANS TO MOVE TO HISTORY
+  //----------------------------
   useEffect(() => {
     if (dashboardData.length > 0) {
       for (let i = 0; i < dashboardData.length; i++) {
@@ -53,62 +69,67 @@ const Home = () => {
         let tripLastDay = dashboardData[i]?.endDate;
         let tripLastDayDate = new Date(tripLastDay);
         if (dateToday > tripLastDayDate) {
+          // Save index of old trips
           setMoveOldPlansToHistory((prev) => [...prev, i]);
         }
       }
     }
   }, [dashboardData]);
 
-  //-----Move to history--------------
+  //----------------------------
+  // FUNCTION: MOVE OLD PLAN TO HISTORY IN DB
+  //----------------------------
   const moveOldPlanToHistoryDb = async (index) => {
     if (!user) return;
+
     const isActive = 0;
     const data = new FormData();
-    data.append("id", dashboardData[index]?.id);
-    data.append("userId", dashboardData[index]?.userid);
-    data.append(
-      "eventCalender",
-      JSON.stringify(dashboardData[index]?.eventCalender)
-    );
-    data.append("places", JSON.stringify(dashboardData[index]?.places));
+    const trip = dashboardData[index];
+
+    // Append trip details
+    data.append("id", trip?.id);
+    data.append("userId", trip?.userid);
+    data.append("eventCalender", JSON.stringify(trip?.eventCalender));
+    data.append("places", JSON.stringify(trip?.places));
     data.append("isActive", String(isActive ? 1 : 0));
-    data.append("titlePlan", dashboardData[index]?.titlePlan);
-    data.append("startDate", dashboardData[index]?.startDate);
-    data.append("endDate", dashboardData[index]?.endDate);
-    data.append(
-      "smartDailyPlans",
-      JSON.stringify(dashboardData[index]?.smartDailyPlans)
-    );
-    data.append("dailyHours", JSON.stringify(dashboardData[index]?.dailyHours));
-    data.append("startloc", JSON.stringify(dashboardData[index]?.startloc));
+    data.append("titlePlan", trip?.titlePlan);
+    data.append("startDate", trip?.startDate);
+    data.append("endDate", trip?.endDate);
+    data.append("smartDailyPlans", JSON.stringify(trip?.smartDailyPlans));
+    data.append("dailyHours", JSON.stringify(trip?.dailyHours));
+    data.append("startloc", JSON.stringify(trip?.startloc));
+
     const url =
       "http://localhost:8080/www/tripmasterv01/public/movetohistory.php";
+
     try {
       const res = await axios.post(url, data);
       console.log("Server response:", res.data);
-      console.log("succes send to database");
     } catch (err) {
       console.error("Failed", err);
     }
   };
-  //-----------------Delte from DB---------------
-  // This function sends a request to the server to delete a plan from the database
-  // It takes the id of the plan and the user's uid as parameters
-  // It uses axios to send a POST request to the server with the plan id and user uid
-  // If the request is successful, it logs the response data
-  // If there is an error, it catches it and does nothing
+
+  //----------------------------
+  // FUNCTION: DELETE PLAN FROM DASHBOARD
+  //----------------------------
   const changeDB = async (idDB, uid) => {
     const data = new FormData();
     data.append("uid", uid);
     data.append("id", idDB);
+
     const url = "http://localhost:8080/www/tripmasterv01/public/DeletPlan.php";
     try {
       const res = await axios.post(url, data);
       if (res.data) {
-        console.log("the delete is", res.data);
+        console.log("Deleted plan:", res.data);
       }
     } catch (err) {}
   };
+
+  //----------------------------
+  // USE EFFECT: MOVE OLD PLANS AND DELETE FROM DASHBOARD
+  //----------------------------
   useEffect(() => {
     const updateUserData = async () => {
       if (moveOldPlansToHistory.length > 0 && user) {
@@ -124,15 +145,19 @@ const Home = () => {
     updateUserData();
   }, [moveOldPlansToHistory]);
 
-  //--------------------------------
-
-  //-------------------Debug's-------------
+  //----------------------------
+  // DEBUGGING
+  //----------------------------
   useEffect(() => {
     console.log("HomeDashboard", dashboardData);
   }, [dashboardData]);
-  //-----------------------------------------------
+
+  //----------------------------
+  // JSX / RENDER
+  //----------------------------
   return (
     <div className="container">
+      {/* Card 1 */}
       <div className="cardTravel">
         <h3> An easier trip, every time</h3>
         <p>
@@ -142,6 +167,7 @@ const Home = () => {
         </p>
       </div>
 
+      {/* Card 2 with Lottie animation */}
       <div className="cardTravel">
         <h3>You book it — we handle the rest</h3>
         <p>

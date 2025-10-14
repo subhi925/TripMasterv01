@@ -4,7 +4,7 @@ import { auth } from "../fire";
 import { useAuthState } from "react-firebase-hooks/auth";
 import "./DashPartnerLst.css";
 
-const DashPartnerLst = () => {
+const DashPartnerLst = ({loadParmetersPlan}) => {
   //--------------------------------------
   //  State Variables
   //--------------------------------------
@@ -219,6 +219,7 @@ const DashPartnerLst = () => {
       if (response.includes("success")) {
         alert("You joined this trip!");
         loadPartners();
+        await loadParmetersPlan(user.uid);
       } else if (response.includes("already joined")) {
         alert("You already joined this trip!");
       } else if (response.includes("trip is full")) {

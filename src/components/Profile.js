@@ -3,16 +3,21 @@ import { useAuthState } from "react-firebase-hooks/auth";
 import "./Profile.css";
 import { auth } from "../fire";
 import axios from "axios";
-import museumImage from "./Images/museums.jpg";
 
 const Profile = () => {
-  const [user] = useAuthState(auth);
-  //const [userId] = useState(user.uid);
+  //----------------------------
+  //  Auth State
+  //----------------------------
+  const [user] = useAuthState(auth); // Firebase authenticated user
 
-  const [saved, setSaved] = useState([]);
-  const [response, setResponse] = useState(""); 
-  const [isFirstload, setIsfirstload] = useState(true);
+  //----------------------------
+  //  Local State Variables
+  //----------------------------
+  const [saved, setSaved] = useState([]); // Stores selected preferences
+  const [response, setResponse] = useState(""); // API response message
+  const [isFirstload, setIsfirstload] = useState(true); // To avoid sending on initial render
   const [categories, setCategories] = useState([
+    // All available categories, main and sub
     { Category: "Events" },
     { Category: "Events", google_type: "Events", google_keyword: "Events" },
     { Category: "Families" },
@@ -274,6 +279,10 @@ const Profile = () => {
       google_keyword: "local market farmer's market",
     },
   ]);
+
+  //----------------------------
+  //  Images Mapping
+  //----------------------------
   const [images, setImages] = useState({
     Events:
       "https://www.eventsindustryforum.co.uk/images/articles/about_the_eif.jpg",
@@ -385,7 +394,9 @@ const Profile = () => {
       "https://cdn.prod.website-files.com/610bede8715eba650a9f7a4d/615327829b5e400e08d8c1a9_Angle%20View%20Local%20Market%20Bryson%20City.jpeg",
   });
 
-  //For Logged user we check if there Preferences to Load them to saved
+  //----------------------------
+  //  Load User Preferences from DB
+  //----------------------------
   const checkIfTherePreferences = async (uid) => {
     const data = new FormData();
     data.append("userId", uid);
@@ -394,12 +405,9 @@ const Profile = () => {
     try {
       const res = await axios.post(url, data);
       if (res.data) {
-        console.log("the saved Perf", res.data);
         const preferences = res.data;
-        console.log(Array.isArray(preferences)); //check If it becom an Array
         if (Array.isArray(preferences)) {
-          //check If it becom an Array
-          setSaved([...preferences]);
+          setSaved([...preferences]); // Save preferences locally
         } else {
           console.log("Invalid Format");
         }
@@ -408,7 +416,10 @@ const Profile = () => {
       console.log("Error Fetching");
     }
   };
-  //call the checkPreference Function to load for user
+
+  //----------------------------
+  //  useEffect for Loading Preferences
+  //----------------------------
   useEffect(() => {
     const fetchPreferencesStatus = async () => {
       if (user) {
@@ -418,8 +429,11 @@ const Profile = () => {
     fetchPreferencesStatus();
   }, [user]);
 
-  //To not Reapet the preferences in the Saved Array
+  //----------------------------
+  //  Handle Category Click
+  //----------------------------
   const categoryClicked = (cat) => {
+    // Toggle preference selection
     if (!saved.some((item) => item.Category === cat.Category)) {
       setSaved([...saved, cat]);
     } else {
@@ -428,7 +442,9 @@ const Profile = () => {
     }
   };
 
-  //with every choise the preferences sends to the database
+  //----------------------------
+  //  Send Preferences to DB
+  //----------------------------
   useEffect(() => {
     if (isFirstload) {
       setIsfirstload(false);
@@ -436,11 +452,9 @@ const Profile = () => {
     }
     sendProfile();
   }, [saved]);
-  //Function for send the prefernces to the DtaBase
+
   const sendProfile = async () => {
-    if (!user) {
-      return;
-    }
+    if (!user) return;
     const data = new FormData();
     data.append("userId", user.uid);
     data.append("preferences", JSON.stringify(saved));
@@ -455,57 +469,59 @@ const Profile = () => {
       console.error("Failed", err);
     }
   };
-  //-----------------
+
+  //----------------------------
+  //  Group Categories into main and subcategories
+  //----------------------------
   const groupedCategories = [];
   let currentGroup = null;
 
   categories.forEach((cat) => {
     if (!cat.google_type && !cat.google_keyword) {
-      //new catgory
+      // Main category
       currentGroup = { title: cat.Category, subcategories: [] };
       groupedCategories.push(currentGroup);
     } else {
-      // תת קטגוריה
-      if (currentGroup) {
-        currentGroup.subcategories.push(cat);
-      }
+      // Subcategory
+      if (currentGroup) currentGroup.subcategories.push(cat);
     }
   });
-  console.log("catgoru", groupedCategories);
 
+  //----------------------------
+  //  JSX / HTML Rendering
+  //----------------------------
   return (
     <div className="page-container">
-      {
-        <div className="container-profile">
-          <h2>User profile</h2>
-          <h3> Select your Preferences :</h3>
-          {groupedCategories.map((mainCat, idx) => (
-            <div key={idx}>
-              <div className="cat-name">{mainCat.title}</div>
-              <div className="lst-profile">
-                {mainCat.subcategories.map((catgory, indx) => (
-                  <div key={indx} className="catgory-card">
-                    <img
-                      className="img-card"
-                      style={{
-                        filter: saved.some(
-                          (item) => item.Category === catgory.Category
-                        )
-                          ? "contrast(50%)"
-                          : "none",
-                      }}
-                      onClick={() => categoryClicked(catgory)}
-                      src={images[catgory.Category]}
-                      alt={catgory.Category}
-                    />
-                    <h2 className="cat-title">{catgory.Category}</h2>
-                  </div>
-                ))}
-              </div>
+      <div className="container-profile">
+        <h2>User profile</h2>
+        <h3>Select your Preferences :</h3>
+        {groupedCategories.map((mainCat, idx) => (
+          <div key={idx}>
+            <div className="cat-name">{mainCat.title}</div>{" "}
+            {/* Main category title */}
+            <div className="lst-profile">
+              {mainCat.subcategories.map((catgory, indx) => (
+                <div key={indx} className="catgory-card">
+                  <img
+                    className="img-card"
+                    style={{
+                      filter: saved.some(
+                        (item) => item.Category === catgory.Category
+                      )
+                        ? "contrast(50%)" // Dim if selected
+                        : "none",
+                    }}
+                    onClick={() => categoryClicked(catgory)} // Toggle selection
+                    src={images[catgory.Category]} // Image from mapping
+                    alt={catgory.Category}
+                  />
+                  <h2 className="cat-title">{catgory.Category}</h2>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      }
+          </div>
+        ))}
+      </div>
     </div>
   );
 };
