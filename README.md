@@ -110,15 +110,6 @@ TripMasterv01/
 
 ## 🔗 Example API Routes
 
-| Method | Endpoint | Description |
-|--------|-----------|-------------|
-| GET | `/api/trips` | Fetch all trips |
-| GET | `/api/trips/:id` | Get trip by ID |
-| POST | `/api/trips` | Create a new trip |
-| PUT | `/api/trips/:id` | Update trip details |
-| DELETE | `/api/trips/:id` | Delete trip |
-
-*(Update these routes based on your actual PHP files.)*
 
 ---
 
