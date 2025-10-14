@@ -323,44 +323,46 @@ const PlanCalendar = ({
     const newEvents = [...events];
 
     for (let dayIndex = 0; dayIndex < dailyHours.length; dayIndex++) {
-      let dateStr = dailyHours[dayIndex]?.day; // Travel day
-      let currentLocation = startloc;
+      const dateStr = dailyHours[dayIndex]?.day; // Travel day
+      let currentLocation = startloc; // Start location
+      let currentTime = new Date(`${dateStr}T00:00:00`);
+
+      // Start of the day
 
       for (let i = 0; i < newEvents.length; i++) {
         const eventDate = newEvents[i].start.split("T")[0];
         if (eventDate === dateStr) {
+          // Calculate travel info from last location to this event
           const travelInfo = await getTravelInfo(
             currentLocation,
             newEvents[i].loc
           );
 
           if (travelInfo) {
-            const startDateTime = new Date(newEvents[i].start);
-            const endDateTime = new Date(newEvents[i].end);
-            const diffMS = endDateTime - startDateTime;
+            const eventDurationMS =
+              new Date(newEvents[i].end) - new Date(newEvents[i].start);
 
-            const startMinutes =
-              startDateTime.getHours() * 60 + startDateTime.getMinutes();
-            const travelMinutes = Math.ceil(travelInfo.durationValue / 60);
-            let newStartMinutes = startMinutes + travelMinutes;
+            // Add travel time to currentTime
+            currentTime = new Date(
+              currentTime.getTime() + travelInfo.durationValue * 1000
+            );
 
-            if (newStartMinutes >= 24 * 60) newStartMinutes = 24 * 60 - 1;
-
-            const newStart = new Date(startDateTime);
-            newStart.setHours(Math.floor(newStartMinutes / 60));
-            newStart.setMinutes(newStartMinutes % 60);
-
-            const newEnd = new Date(newStart.getTime() + diffMS);
+            // Set new start and end times
+            const newStart = new Date(currentTime);
+            const newEnd = new Date(newStart.getTime() + eventDurationMS);
 
             newEvents[i].start = newStart.toISOString();
             newEvents[i].end = newEnd.toISOString();
 
+            // Store travel info
             newEvents[i].originalData = {
               ...newEvents[i].originalData,
               travelInfo,
             };
 
+            // Update currentLocation and currentTime for next iteration
             currentLocation = newEvents[i].loc;
+            currentTime = newEnd;
           }
         }
       }
