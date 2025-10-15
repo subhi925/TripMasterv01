@@ -220,6 +220,18 @@ const Myplan = ({
   //----------------------------
   // FUNCTION: ADD PLACE TO DAY PLAN
   //----------------------------
+  // PURPOSE: Adds a place (e.g., restaurant, cafe, attraction) to the day's itinerary
+  // PARAMETERS:
+  //   placesArray    - array of place objects to choose from
+  //   maxEndMinutes  - maximum allowed end time in minutes (to not exceed day end or event start)
+  //   currentLocation- current location coordinates {lat, lng}
+  //   currentMinutes - current time in minutes since 00:00
+  //   usedId         - array of place IDs already used today
+  //   usedIdGlobal   - array of place IDs used across all days
+  //   dayPlan        - array containing the day's itinerary
+  //   dayIndex       - index of the current day (0, 1, 2, ...)
+  // RETURNS:
+  //   Object { added: boolean, currentLocation, currentMinutes }
   const addPlaceToPlan = async (
     placesArray,
     maxEndMinutes,
@@ -230,6 +242,9 @@ const Myplan = ({
     dayPlan,
     dayIndex
   ) => {
+    //----------------------------
+    // STEP 1: FILTER AVAILABLE PLACES
+    //----------------------------
     const availablePlaces = shuffleArray(
       placesArray.filter(
         (p) => !usedId.includes(p.id) && !usedIdGlobal.includes(p.id)
@@ -238,17 +253,37 @@ const Myplan = ({
     if (availablePlaces.length === 0)
       return { added: false, currentLocation, currentMinutes };
 
+    //----------------------------
+    // STEP 2: LOOP THROUGH AVAILABLE PLACES
+    //----------------------------
     for (let place of availablePlaces) {
+      //----------------------------
+      // STEP 2A: CALCULATE TRAVEL TIME TO PLACE
+      //----------------------------
       const travelInfo = await getTravelInfo(currentLocation, place.loc);
       const travelMinutes = travelInfo
         ? Math.ceil(travelInfo.durationValue / 60)
         : 0;
+
+      //----------------------------
+      // STEP 2B: CALCULATE START AND END TIME FOR PLACE
+      //----------------------------
       const placeStartMinutes = currentMinutes + travelMinutes;
       const placeDuration = getDuration(place.type);
       const placeEndMinutes = placeStartMinutes + placeDuration;
 
+      //----------------------------
+      // STEP 2C: CHECK IF PLACE FITS TIME WINDOW
+      //----------------------------
       if (maxEndMinutes && placeEndMinutes > maxEndMinutes) continue;
+
+      //----------------------------
+      // STEP 2D: CHECK IF PLACE IS OPEN AT ARRIVAL
+      //----------------------------
       if (isPlaceOpen(place, formatTime(placeStartMinutes), dayIndex)) {
+        //----------------------------
+        // STEP 2E: ADD PLACE TO PLAN
+        //----------------------------
         usedId.push(place.id);
         usedIdGlobal.push(place.id);
         dayPlan.push({
@@ -265,12 +300,25 @@ const Myplan = ({
       }
     }
 
+    //----------------------------
+    // STEP 3: NO PLACE WAS ADDED
+    //----------------------------
     return { added: false, currentLocation, currentMinutes };
   };
 
   //----------------------------
   // FUNCTION: BUILD DAILY PLAN
   //----------------------------
+  // PURPOSE: Build a full itinerary for a single day, including events, restaurants, cafes, and attractions
+  // PARAMETERS:
+  //   dayIndex       - index of the current day
+  //   places         - array of all places to consider
+  //   startLocation  - starting location coordinates {lat, lng}
+  //   startTime      - day start time as string "HH:MM"
+  //   endTime        - day end time as string "HH:MM"
+  //   usedIdGlobal   - array of place IDs already used across all days
+  // RETURNS:
+  //   dayPlan array containing all scheduled places/events for the day
   const BuildDailyPlan = async (
     dayIndex,
     places,
@@ -279,7 +327,9 @@ const Myplan = ({
     endTime,
     usedIdGlobal
   ) => {
-    // Build plan for a single day with events, cafes, restaurants, other places
+    //----------------------------
+    // STEP 1: INITIALIZE VARIABLES
+    //----------------------------
     let dayPlan = [];
     let usedId = [];
     let [startHour, startMin] = (startTime || "08:30").split(":").map(Number);
@@ -289,7 +339,7 @@ const Myplan = ({
     let currentLocation = startLocation;
 
     //----------------------------
-    // FILTER SPECIAL PLACES
+    // STEP 2: FILTER SPECIAL PLACE TYPES
     //----------------------------
     const eventForToday = dayEvent.filter((event) => event.day === dayIndex);
     const bakeryCoffee = places
@@ -329,10 +379,10 @@ const Myplan = ({
       cntRestaurant = 0;
 
     //----------------------------
-    // ADD SPECIAL PLACES BASED ON TIME
+    // STEP 3: FUNCTION TO ADD SPECIAL PLACES (CAFE/RESTAURANT) BASED ON TIME
     //----------------------------
     const specilAdd = async (maxEndMinutes) => {
-      // Add cafe or restaurant depending on current time
+      // Breakfast / morning coffee
       if (
         bakeryCoffee.length > 0 &&
         currentMinutes >= 510 &&
@@ -356,6 +406,8 @@ const Myplan = ({
           return true;
         }
       }
+
+      // Lunch
       if (
         resturants.length > 0 &&
         currentMinutes >= 720 &&
@@ -379,6 +431,8 @@ const Myplan = ({
           return true;
         }
       }
+
+      // Afternoon coffee
       if (
         bakeryCoffee.length > 0 &&
         currentMinutes >= 1020 &&
@@ -402,6 +456,8 @@ const Myplan = ({
           return true;
         }
       }
+
+      // Dinner / fine dining
       if (
         (resturants.length > 0 || fineDining.length > 0) &&
         currentMinutes >= 1170 &&
@@ -444,11 +500,12 @@ const Myplan = ({
           }
         }
       }
+
       return false;
     };
 
     //----------------------------
-    // BUILD DAY WITH EVENTS
+    // STEP 4: BUILD DAY WITH EVENTS
     //----------------------------
     if (eventForToday.length > 0) {
       for (let event of eventForToday) {
@@ -458,6 +515,9 @@ const Myplan = ({
           .map(Number);
         const eventTime = eveHour * 60 + eveMin;
 
+        //----------------------------
+        // STEP 4A: FILL TIME BEFORE EVENT WITH PLACES
+        //----------------------------
         while (currentMinutes < eventTime) {
           if (await specilAdd(eventTime)) continue;
           const res = await addPlaceToPlan(
@@ -475,6 +535,9 @@ const Myplan = ({
           currentMinutes = res.currentMinutes;
         }
 
+        //----------------------------
+        // STEP 4B: ADD EVENT TO PLAN
+        //----------------------------
         const eventDuration = 120;
         dayPlan.push({
           name: todayEvent.name,
@@ -496,6 +559,9 @@ const Myplan = ({
         };
       }
 
+      //----------------------------
+      // STEP 4C: FILL TIME AFTER EVENTS
+      //----------------------------
       while (currentMinutes < endMinutes) {
         if (await specilAdd(endMinutes)) continue;
         const res = await addPlaceToPlan(
@@ -513,6 +579,9 @@ const Myplan = ({
         currentMinutes = res.currentMinutes;
       }
     } else {
+      //----------------------------
+      // STEP 4D: IF NO EVENTS, FILL WHOLE DAY
+      //----------------------------
       while (currentMinutes < endMinutes) {
         if (await specilAdd(endMinutes)) continue;
         const res = await addPlaceToPlan(
@@ -531,6 +600,9 @@ const Myplan = ({
       }
     }
 
+    //----------------------------
+    // STEP 5: RETURN FINAL DAY PLAN
+    //----------------------------
     return dayPlan;
   };
 
