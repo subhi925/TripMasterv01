@@ -1,12 +1,12 @@
 # 🗺️ TripMaster – My First Full-Stack Project
 
-This is my **graduation project** – the first complete full-stack application I built from scratch!
+This is my **college final project**, built as a **team of two** – the first complete full-stack application I worked on.
 
 ## 🎯 What This Project Is About
 
 TripMaster helps travelers plan trips and discover travel recommendations. It's where I applied everything I learned in my software engineering program.
 
-## 🛠️ What I Built
+## 🛠️ What We Built
 
 **Frontend:**
 - React with Hooks for managing app state
@@ -163,9 +163,9 @@ This is a learning project, so if you have questions or suggestions, feel free t
 
 ---
 
-**Made by:** Subhi Hamed  
+**Made by:** Subhi Hamed and a teammate (team of two)  
 **Started:** September 2025  
 **Completed:** October 2025  
-**Status:** ✅ Finished & Deployed
+**Status:** ✅ Finished (college final project)
 
 ⭐ **If this helped you learn something, please star it!**
